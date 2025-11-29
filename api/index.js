@@ -1,4 +1,4 @@
-// /api/index.js (Final and Secure Version with Admin Panel Endpoint)
+// /api/index.js (النسخة النهائية والآمنة)
 
 /**
  * SHIB Ads WebApp Backend API
@@ -20,18 +20,17 @@ const REWARD_PER_AD = 3;
 const REFERRAL_COMMISSION_RATE = 0.05;
 const DAILY_MAX_ADS = 100; // Max ads limit
 const DAILY_MAX_SPINS = 15; // Max spins limit
-const RESET_INTERVAL_MS = 6 * 60 * 60 * 1000; // ⬅️ 6 hours in milliseconds
+const RESET_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours in milliseconds
 const MIN_TIME_BETWEEN_ACTIONS_MS = 3000; // 3 seconds minimum time between watchAd/spin requests
 const ACTION_ID_EXPIRY_MS = 60000; // 60 seconds for Action ID to be valid
 const SPIN_SECTORS = [5, 10, 15, 20, 5];
-const ADMIN_USER_ID = 7741750541; // ⬅️ NEW: معرف حسابك للمشرف
+const ADMIN_USER_ID = 7741750541; // ⬅️ CRITICAL: معرف حسابك للمشرف - يجب التأكد من تطابقه مع معرفك
 
 // ------------------------------------------------------------------
-// NEW Task Constants
+// Task Constants
 // ------------------------------------------------------------------
 const TASK_REWARD = 50;
-const TELEGRAM_CHANNEL_USERNAME = '@botbababab'; // يجب أن يكون هذا هو اسم المستخدم للقناة لبدء التحقق
-
+const TELEGRAM_CHANNEL_USERNAME = '@botbababab'; // اسم القناة المطلوب للانضمام
 
 /**
  * Helper function to randomly select a prize from the defined sectors and return its index.
@@ -107,9 +106,7 @@ async function checkChannelMembership(userId, channelUsername) {
         return false;
     }
     
-    // The chat_id must be in the format @username or -100xxxxxxxxxx
     const chatId = channelUsername.startsWith('@') ? channelUsername : `@${channelUsername}`; 
-
     const url = `https://api.telegram.org/bot${BOT_TOKEN}/getChatMember?chat_id=${chatId}&user_id=${userId}`;
     
     try {
@@ -128,8 +125,6 @@ async function checkChannelMembership(userId, channelUsername) {
         }
 
         const status = data.result.status;
-        
-        // Accepted statuses are 'member', 'administrator', 'creator'
         const isMember = ['member', 'administrator', 'creator'].includes(status);
         
         return isMember;
@@ -154,7 +149,6 @@ function checkAdminAccess(userId, res) {
 
 /**
  * Limit-Based Reset Logic: Resets counters if the limit was reached AND the interval (6 hours) has passed since.
- * ⚠️ هذا هو التعديل الرئيسي: يعتمد على أعمدة الوصول للحد الأقصى وليس على آخر نشاط عام.
  */
 async function resetDailyLimitsIfExpired(userId) {
     const now = Date.now();
@@ -173,10 +167,8 @@ async function resetDailyLimitsIfExpired(userId) {
         if (user.ads_limit_reached_at && user.ads_watched_today >= DAILY_MAX_ADS) {
             const adsLimitTime = new Date(user.ads_limit_reached_at).getTime();
             if (now - adsLimitTime > RESET_INTERVAL_MS) {
-                // ⚠️ تم مرور 6 ساعات على الوصول للحد الأقصى، يتم إعادة التعيين
                 updatePayload.ads_watched_today = 0;
-                updatePayload.ads_limit_reached_at = null; // إزالة الوقت لانتهاء فترة القفل
-                console.log(`Ads limit reset for user ${userId}.`);
+                updatePayload.ads_limit_reached_at = null; 
             }
         }
 
@@ -184,10 +176,8 @@ async function resetDailyLimitsIfExpired(userId) {
         if (user.spins_limit_reached_at && user.spins_today >= DAILY_MAX_SPINS) {
             const spinsLimitTime = new Date(user.spins_limit_reached_at).getTime();
             if (now - spinsLimitTime > RESET_INTERVAL_MS) {
-                // ⚠️ تم مرور 6 ساعات على الوصول للحد الأقصى، يتم إعادة التعيين
                 updatePayload.spins_today = 0;
-                updatePayload.spins_limit_reached_at = null; // إزالة الوقت لانتهاء فترة القفل
-                console.log(`Spins limit reset for user ${userId}.`);
+                updatePayload.spins_limit_reached_at = null;
             }
         }
 
@@ -204,7 +194,6 @@ async function resetDailyLimitsIfExpired(userId) {
 
 /**
  * Rate Limiting Check for Ad/Spin Actions
- * ⚠️ تم تعديلها: لم تعد تحدث last_activity، بل فقط تفحص الفارق الزمني الأخير
  */
 async function checkRateLimit(userId) {
     try {
@@ -214,7 +203,6 @@ async function checkRateLimit(userId) {
         }
 
         const user = users[0];
-        // إذا كان last_activity غير موجود، يمكن اعتباره 0 لضمان السماح بالمرور
         const lastActivity = user.last_activity ? new Date(user.last_activity).getTime() : 0; 
         const now = Date.now();
         const timeElapsed = now - lastActivity;
@@ -227,7 +215,6 @@ async function checkRateLimit(userId) {
                 remainingTime: remainingTime
             };
         }
-        // تحديث last_activity سيتم لاحقاً في دوال watchAd/spinResult
         return { ok: true };
     } catch (error) {
         console.error(`Rate limit check failed for user ${userId}:`, error.message);
@@ -236,7 +223,7 @@ async function checkRateLimit(userId) {
 }
 
 // ------------------------------------------------------------------
-// **initData Security Validation Function** (No change)
+// initData Security Validation Function
 // ------------------------------------------------------------------
 function validateInitData(initData) {
     if (!initData || !BOT_TOKEN) {
@@ -285,13 +272,12 @@ function validateInitData(initData) {
 }
 
 // ------------------------------------------------------------------
-// 🔑 Commission Helper Function (No change)
+// Commission Helper Function
 // ------------------------------------------------------------------
 /**
  * Processes the commission for the referrer and updates their balance.
  */
 async function processCommission(referrerId, refereeId, sourceReward) {
-    // 1. Calculate commission
     const commissionAmount = sourceReward * REFERRAL_COMMISSION_RATE; 
     
     if (commissionAmount < 0.000001) { 
@@ -307,10 +293,9 @@ async function processCommission(referrerId, refereeId, sourceReward) {
              return { ok: false, error: 'Referrer not found or banned, commission aborted.' };
         }
         
-        // 3. Update balance: newBalance will now include the decimal commission
+        // 3. Update balance
         const newBalance = users[0].balance + commissionAmount;
         
-        // 4. Update referrer balance
         await supabaseFetch('users', 'PATCH', { balance: newBalance }, `?id=eq.${referrerId}`); 
 
         // 5. Add record to commission_history
@@ -326,7 +311,7 @@ async function processCommission(referrerId, refereeId, sourceReward) {
 
 
 // ------------------------------------------------------------------
-// 🔒 Action ID Security System (No change)
+// Action ID Security System
 // ------------------------------------------------------------------
 
 /**
@@ -338,7 +323,6 @@ function generateStrongId() {
 
 /**
  * HANDLER: type: "generateActionId"
- * The client requests an action ID before starting a critical action (ad/spin/withdraw).
  */
 async function handleGenerateActionId(req, res, body) {
     const { user_id, action_type } = body;
@@ -355,10 +339,8 @@ async function handleGenerateActionId(req, res, body) {
         if (Array.isArray(existingIds) && existingIds.length > 0) {
             const lastIdTime = new Date(existingIds[0].created_at).getTime();
             if (Date.now() - lastIdTime < ACTION_ID_EXPIRY_MS) {
-                 // If the existing ID is still valid, return it to prevent spamming the table
                 return sendSuccess(res, { action_id: existingIds[0].action_id });
             } else {
-                 // Clean up expired ID before creating a new one
                  await supabaseFetch('temp_actions', 'DELETE', null, `?user_id=eq.${id}&action_type=eq.${action_type}`);
             }
         }
@@ -423,11 +405,9 @@ async function validateAndUseActionId(res, userId, actionId, actionType) {
 }
 
 
-/**
- * NEW HANDLER: type: "adminAction"
- * Handles all admin-specific operations (ban, unban, update balance, process withdrawal).
- * Requires the request to come from the predefined ADMIN_USER_ID.
- */
+// ------------------------------------------------------------------
+// HANDLER: type: "adminAction" (لوحة المشرف)
+// ------------------------------------------------------------------
 async function handleAdminAction(req, res, body) {
     const { user_id, action, target_id, new_value, withdrawal_id, amount } = body;
     const adminId = parseInt(user_id);
@@ -451,20 +431,19 @@ async function handleAdminAction(req, res, body) {
 
             case 'updateBanStatus':
                 if (isNaN(targetId) || new_value === undefined) return sendError(res, 'Missing target_id or new_value for updateBanStatus.', 400);
-                updatePayload.is_banned = new_value === 'true' || new_value === true; // Supports string 'true' from HTML form
+                updatePayload.is_banned = new_value === 'true' || new_value === true; 
                 await supabaseFetch('users', 'PATCH', updatePayload, `?id=eq.${targetId}`);
                 return sendSuccess(res, { message: `Ban status for User ${targetId} updated to ${updatePayload.is_banned}.` });
                 
             case 'processWithdrawal':
                 if (isNaN(withdrawalId) || !new_value || isNaN(targetId) || isNaN(withdrawalAmount)) return sendError(res, 'Missing required data for processWithdrawal.', 400);
-                const newStatus = new_value; // 'completed' or 'cancelled'
+                const newStatus = new_value;
 
                 // A. Update withdrawal status
                 await supabaseFetch('withdrawals', 'PATCH', { status: newStatus, processed_at: new Date().toISOString() }, `?id=eq.${withdrawalId}`);
 
                 // B. If cancelled, return the balance
                 if (newStatus === 'cancelled') {
-                    // Fetch current user balance
                     const users = await supabaseFetch('users', 'GET', null, `?id=eq.${targetId}&select=balance`);
                     if (users.length === 0) throw new Error('Target user not found for balance refund.');
                     
@@ -500,7 +479,6 @@ async function handleAdminAction(req, res, body) {
 
 /**
  * HANDLER: type: "getUserData"
- * ⚠️ Fix: Now selects new limit columns and task_completed.
  */
 async function handleGetUserData(req, res, body) {
     const { user_id } = body;
@@ -510,10 +488,10 @@ async function handleGetUserData(req, res, body) {
     const id = parseInt(user_id);
 
     try {
-        // 1. Check and reset daily limits (if 6 hours passed since limit reached)
+        // 1. Check and reset daily limits
         await resetDailyLimitsIfExpired(id);
 
-        // 2. Fetch user data (including new limit columns AND task_completed)
+        // 2. Fetch user data
         const users = await supabaseFetch('users', 'GET', null, `?id=eq.${id}&select=balance,ads_watched_today,spins_today,is_banned,ref_by,ads_limit_reached_at,spins_limit_reached_at,task_completed`);
 
         if (!users || users.length === 0 || users.success) {
@@ -524,7 +502,7 @@ async function handleGetUserData(req, res, body) {
 
         const userData = users[0];
 
-        // 3. Banned Check - Exit immediately if banned
+        // 3. Banned Check
         if (userData.is_banned) {
              return sendSuccess(res, { is_banned: true, message: "User is banned from accessing the app." });
         }
@@ -538,7 +516,7 @@ async function handleGetUserData(req, res, body) {
         const history = await supabaseFetch('withdrawals', 'GET', null, `?user_id=eq.${id}&select=amount,status,created_at&order=created_at.desc`);
         const withdrawalHistory = Array.isArray(history) ? history : [];
 
-        // 6. Update last_activity (only for Rate Limit purposes now)
+        // 6. Update last_activity (for Rate Limit purposes)
         await supabaseFetch('users', 'PATCH',
             { last_activity: new Date().toISOString() },
             `?id=eq.${id}&select=id`);
@@ -557,8 +535,7 @@ async function handleGetUserData(req, res, body) {
 
 
 /**
- * 1) type: "register"
- * ⚠️ Fix: Includes task_completed: false for new users.
+ * HANDLER: type: "register"
  */
 async function handleRegister(req, res, body) {
   const { user_id, ref_by } = body;
@@ -576,10 +553,9 @@ async function handleRegister(req, res, body) {
         ads_watched_today: 0,
         spins_today: 0,
         ref_by: ref_by ? parseInt(ref_by) : null,
-        last_activity: new Date().toISOString(), // ⬅️ يبقى هنا للـ Rate Limit فقط
+        last_activity: new Date().toISOString(),
         is_banned: false,
-        task_completed: false, // ⬅️ NEW: Default value for the task
-        // الأعمدة الجديدة ستحتوي على NULL بشكل افتراضي
+        task_completed: false, 
       };
       await supabaseFetch('users', 'POST', newUser, '?select=id');
     } else {
@@ -596,19 +572,18 @@ async function handleRegister(req, res, body) {
 }
 
 /**
- * 2) type: "watchAd"
- * ⚠️ Fix: Updates ads_limit_reached_at when the limit is hit.
+ * HANDLER: type: "watchAd"
  */
 async function handleWatchAd(req, res, body) {
     const { user_id, action_id } = body;
     const id = parseInt(user_id);
     const reward = REWARD_PER_AD;
 
-    // 1. Check and Consume Action ID (Security Check)
+    // 1. Check and Consume Action ID 
     if (!await validateAndUseActionId(res, id, action_id, 'watchAd')) return;
 
     try {
-        // 2. Check and reset daily limits (if 6 hours passed since limit reached)
+        // 2. Check and reset daily limits
         await resetDailyLimitsIfExpired(id);
 
         // 3. Fetch current user data 
@@ -642,10 +617,10 @@ async function handleWatchAd(req, res, body) {
         const updatePayload = {
             balance: newBalance,
             ads_watched_today: newAdsCount,
-            last_activity: new Date().toISOString() // ⬅️ تحديث لـ Rate Limit
+            last_activity: new Date().toISOString()
         };
 
-        // 8. ⚠️ NEW LOGIC: Check if the limit is reached NOW
+        // 8. Check if the limit is reached NOW
         if (newAdsCount >= DAILY_MAX_ADS) {
             updatePayload.ads_limit_reached_at = new Date().toISOString();
         }
@@ -670,7 +645,7 @@ async function handleWatchAd(req, res, body) {
 }
 
 /**
- * 3) type: "commission" (No change)
+ * HANDLER: type: "commission" 
  */
 async function handleCommission(req, res, body) {
     const { referrer_id, referee_id, source_reward } = body;
@@ -689,7 +664,7 @@ async function handleCommission(req, res, body) {
 }
 
 /**
- * 4) type: "preSpin" (No change)
+ * HANDLER: type: "preSpin" 
  */
 async function handlePreSpin(req, res, body) {
     const { user_id, action_id } = body;
@@ -717,17 +692,16 @@ async function handlePreSpin(req, res, body) {
 
 
 /**
- * 5) type: "spinResult"
- * ⚠️ Fix: Updates spins_limit_reached_at when the limit is hit.
+ * HANDLER: type: "spinResult"
  */
 async function handleSpinResult(req, res, body) {
     const { user_id, action_id } = body; 
     const id = parseInt(user_id);
     
-    // 1. Check and Consume Action ID (Security Check)
+    // 1. Check and Consume Action ID 
     if (!await validateAndUseActionId(res, id, action_id, 'spinResult')) return; 
     
-    // 2. Check and reset daily limits (if 6 hours passed since limit reached)
+    // 2. Check and reset daily limits
     await resetDailyLimitsIfExpired(id);
 
     try {
@@ -764,10 +738,10 @@ async function handleSpinResult(req, res, body) {
         const updatePayload = {
             balance: newBalance,
             spins_today: newSpinsCount,
-            last_activity: new Date().toISOString() // ⬅️ تحديث لـ Rate Limit
+            last_activity: new Date().toISOString()
         };
 
-        // 7. ⚠️ NEW LOGIC: Check if the limit is reached NOW
+        // 7. Check if the limit is reached NOW
         if (newSpinsCount >= DAILY_MAX_SPINS) {
             updatePayload.spins_limit_reached_at = new Date().toISOString();
         }
@@ -795,15 +769,14 @@ async function handleSpinResult(req, res, body) {
 }
 
 /**
- * 7) NEW HANDLER: type: "completeTask"
- * ⚠️ Handles the one-time channel join reward task.
+ * HANDLER: type: "completeTask"
  */
 async function handleCompleteTask(req, res, body) {
     const { user_id, action_id } = body;
     const id = parseInt(user_id);
     const reward = TASK_REWARD;
 
-    // 1. Check and Consume Action ID (Security Check)
+    // 1. Check and Consume Action ID 
     if (!await validateAndUseActionId(res, id, action_id, 'completeTask')) return;
 
     try {
@@ -825,13 +798,13 @@ async function handleCompleteTask(req, res, body) {
             return sendError(res, 'Task already completed.', 403);
         }
         
-        // 5. Check Rate Limit (Good practice for anti-spam)
+        // 5. Check Rate Limit
         const rateLimitResult = await checkRateLimit(id);
         if (!rateLimitResult.ok) {
             return sendError(res, rateLimitResult.message, 429); 
         }
 
-        // 6. 🚨 CRITICAL: Check Channel Membership using Telegram API
+        // 6. CRITICAL: Check Channel Membership using Telegram API
         const isMember = await checkChannelMembership(id, TELEGRAM_CHANNEL_USERNAME);
 
         if (!isMember) {
@@ -843,8 +816,8 @@ async function handleCompleteTask(req, res, body) {
         
         const updatePayload = {
             balance: newBalance,
-            task_completed: true, // Mark as completed
-            last_activity: new Date().toISOString() // Update for Rate Limit
+            task_completed: true, 
+            last_activity: new Date().toISOString()
         };
 
         await supabaseFetch('users', 'PATCH', updatePayload, `?id=eq.${id}`);
@@ -860,7 +833,7 @@ async function handleCompleteTask(req, res, body) {
 
 
 /**
- * 6) type: "withdraw" (No change, only uses last_activity for rate limit check in checkRateLimit)
+ * HANDLER: type: "withdraw"
  */
 async function handleWithdraw(req, res, body) {
     const { user_id, binanceId, amount, action_id } = body;
@@ -868,7 +841,7 @@ async function handleWithdraw(req, res, body) {
     const withdrawalAmount = parseFloat(amount);
     const MIN_WITHDRAW = 400;
 
-    // 1. Check and Consume Action ID (Security Check)
+    // 1. Check and Consume Action ID 
     if (!await validateAndUseActionId(res, id, action_id, 'withdraw')) return;
 
     if (withdrawalAmount < MIN_WITHDRAW) {
@@ -901,7 +874,7 @@ async function handleWithdraw(req, res, body) {
         await supabaseFetch('users', 'PATCH',
           { 
               balance: newBalance,
-              last_activity: new Date().toISOString() // ⬅️ تحديث لـ Rate Limit
+              last_activity: new Date().toISOString()
           },
           `?id=eq.${id}`);
 
@@ -961,6 +934,7 @@ module.exports = async (req, res) => {
   }
 
   // ⬅️ initData Security Check: Exclude 'commission' (server-to-server) and 'adminAction' (external admin access)
+  // لا يتم فحص adminAction لأنه آمن بالتحقق من ADMIN_USER_ID داخل handleAdminAction
   if (body.type !== 'commission' && body.type !== 'adminAction' && (!body.initData || !validateInitData(body.initData))) {
       return sendError(res, 'Invalid or expired initData. Security check failed.', 401);
   }
@@ -992,13 +966,13 @@ module.exports = async (req, res) => {
     case 'withdraw':
       await handleWithdraw(req, res, body);
       break;
-    case 'completeTask': // ⬅️ Handle the channel join task logic
+    case 'completeTask':
       await handleCompleteTask(req, res, body);
       break;
     case 'generateActionId': 
       await handleGenerateActionId(req, res, body);
       break;
-    case 'adminAction': // ⬅️ NEW: The secure admin endpoint
+    case 'adminAction': // ⬅️ The secure admin endpoint
       await handleAdminAction(req, res, body);
       break;
     default:
