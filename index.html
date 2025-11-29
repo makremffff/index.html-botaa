@@ -172,7 +172,7 @@
 <script>
     // ⚠️ يجب أن يتطابق هذا المعرف مع قيمة ADMIN_USER_ID في ملف index.js
     const ADMIN_USER_ID = 7741750541; 
-    let API_ENDPOINT = ''; // سيتم تعيينها من حقل الإدخال
+    let API_ENDPOINT = ''; 
 
     let currentSearchedUser = null;
 
@@ -187,7 +187,7 @@
 
         const payload = {
             type: 'adminAction',
-            user_id: ADMIN_USER_ID, // ⚠️ هذا يضمن أن index.js يرفض أي طلب من مصدر آخر
+            user_id: ADMIN_USER_ID, 
             action,
             target_id,
             new_value,
@@ -230,7 +230,7 @@
             document.getElementById('admin-panel').style.display = 'block';
             document.getElementById('adminName').textContent = 'المشرف الرئيسي';
             loginStatus.style.display = 'none';
-            fetchPendingWithdrawals(); // بدء جلب البيانات
+            fetchPendingWithdrawals(); 
         } else {
             loginStatus.textContent = 'معرف المشرف غير صحيح أو عنوان API مفقود.';
             loginStatus.className = 'status-message status-error';
@@ -399,8 +399,6 @@
 
     document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('adminIdInput').value = ADMIN_USER_ID;
-        // يمكنك وضع الـ API Endpoint الافتراضي هنا بمجرد نشره لتجنب الإدخال اليدوي المتكرر
-        // document.getElementById('apiEndpointInput').value = 'https://your-project.vercel.app/api'; 
     });
 
 </script>
