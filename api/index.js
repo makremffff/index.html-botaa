@@ -1,4 +1,4 @@
-// /api/index.js (Final and Secure Version with Dynamic Tasks)
+// /api/index.js (Final and Secure Version with Limit-Based Reset)
 
 /**
  * SHIB Ads WebApp Backend API
@@ -26,10 +26,10 @@ const ACTION_ID_EXPIRY_MS = 60000; // 60 seconds for Action ID to be valid
 const SPIN_SECTORS = [5, 10, 15, 20, 5];
 
 // ------------------------------------------------------------------
-// NEW Table Names for Dynamic Tasks
+// NEW Task Constants
 // ------------------------------------------------------------------
-const TASKS_TABLE = 'tasks';
-const USER_TASKS_TABLE = 'user_tasks';
+const TASK_REWARD = 50;
+const TELEGRAM_CHANNEL_USERNAME = '@botbababab'; // يجب أن يكون هذا هو اسم المستخدم للقناة لبدء التحقق
 
 
 /**
@@ -215,7 +215,7 @@ async function checkRateLimit(userId) {
                 remainingTime: remainingTime
             };
         }
-        // تحديث last_activity سيتم لاحقاً في دوال watchAd/spinResult/completeTask/withdraw
+        // تحديث last_activity سيتم لاحقاً في دوال watchAd/spinResult
         return { ok: true };
     } catch (error) {
         console.error(`Rate limit check failed for user ${userId}:`, error.message);
@@ -410,44 +410,11 @@ async function validateAndUseActionId(res, userId, actionId, actionType) {
     }
 }
 
-/**
- * NEW HELPER: Fetches all active tasks and the user's completion status for each.
- */
-async function fetchTasksAndCompletionStatus(userId) {
-    try {
-        // 1. Fetch all active tasks
-        const activeTasks = await supabaseFetch(TASKS_TABLE, 'GET', null, '?select=id,task_name,task_description,task_type,target_value,reward,max_users,is_active&is_active=eq.true');
-        
-        if (!Array.isArray(activeTasks) || activeTasks.length === 0) {
-            return [];
-        }
-
-        // 2. Fetch the user's completed tasks IDs
-        const userCompletedTasks = await supabaseFetch(USER_TASKS_TABLE, 'GET', null, `?user_id=eq.${userId}&select=task_id`);
-        const completedTaskIds = Array.isArray(userCompletedTasks) 
-            ? userCompletedTasks.map(item => item.task_id) 
-            : [];
-            
-        // 3. Map the active tasks with the user's completion status
-        const tasksWithStatus = activeTasks.map(task => ({
-            ...task,
-            is_completed: completedTaskIds.includes(task.id)
-        }));
-
-        return tasksWithStatus;
-
-    } catch (error) {
-        console.error(`Failed to fetch tasks for user ${userId}:`, error.message);
-        return [];
-    }
-}
-
-
 // --- API Handlers ---
 
 /**
  * HANDLER: type: "getUserData"
- * ⚠️ Fix: Now fetches all dynamic tasks and their completion status.
+ * ⚠️ Fix: Now selects new limit columns and task_completed.
  */
 async function handleGetUserData(req, res, body) {
     const { user_id } = body;
@@ -460,12 +427,12 @@ async function handleGetUserData(req, res, body) {
         // 1. Check and reset daily limits (if 6 hours passed since limit reached)
         await resetDailyLimitsIfExpired(id);
 
-        // 2. Fetch user data (removed task_completed as it's now handled by user_tasks table)
-        const users = await supabaseFetch('users', 'GET', null, `?id=eq.${id}&select=balance,ads_watched_today,spins_today,is_banned,ref_by,ads_limit_reached_at,spins_limit_reached_at`);
+        // 2. Fetch user data (including new limit columns AND task_completed)
+        const users = await supabaseFetch('users', 'GET', null, `?id=eq.${id}&select=balance,ads_watched_today,spins_today,is_banned,ref_by,ads_limit_reached_at,spins_limit_reached_at,task_completed`);
 
         if (!users || users.length === 0 || users.success) {
             return sendSuccess(res, {
-                balance: 0, ads_watched_today: 0, spins_today: 0, referrals_count: 0, withdrawal_history: [], is_banned: false, tasks: []
+                balance: 0, ads_watched_today: 0, spins_today: 0, referrals_count: 0, withdrawal_history: [], is_banned: false, task_completed: false
             });
         }
 
@@ -484,12 +451,8 @@ async function handleGetUserData(req, res, body) {
         // 5. Fetch withdrawal history
         const history = await supabaseFetch('withdrawals', 'GET', null, `?user_id=eq.${id}&select=amount,status,created_at&order=created_at.desc`);
         const withdrawalHistory = Array.isArray(history) ? history : [];
-        
-        // 6. 🚨 NEW: Fetch active tasks and user completion status
-        const tasks = await fetchTasksAndCompletionStatus(id);
 
-
-        // 7. Update last_activity (only for Rate Limit purposes now)
+        // 6. Update last_activity (only for Rate Limit purposes now)
         await supabaseFetch('users', 'PATCH',
             { last_activity: new Date().toISOString() },
             `?id=eq.${id}&select=id`);
@@ -497,8 +460,7 @@ async function handleGetUserData(req, res, body) {
         sendSuccess(res, {
             ...userData,
             referrals_count: referralsCount,
-            withdrawal_history: withdrawalHistory,
-            tasks: tasks // ⬅️ NEW: Return dynamic tasks list
+            withdrawal_history: withdrawalHistory
         });
 
     } catch (error) {
@@ -510,7 +472,7 @@ async function handleGetUserData(req, res, body) {
 
 /**
  * 1) type: "register"
- * ⚠️ Fix: Removed 'task_completed' as it's no longer a user column.
+ * ⚠️ Fix: Includes task_completed: false for new users.
  */
 async function handleRegister(req, res, body) {
   const { user_id, ref_by } = body;
@@ -530,6 +492,7 @@ async function handleRegister(req, res, body) {
         ref_by: ref_by ? parseInt(ref_by) : null,
         last_activity: new Date().toISOString(), // ⬅️ يبقى هنا للـ Rate Limit فقط
         is_banned: false,
+        task_completed: false, // ⬅️ NEW: Default value for the task
         // الأعمدة الجديدة ستحتوي على NULL بشكل افتراضي
       };
       await supabaseFetch('users', 'POST', newUser, '?select=id');
@@ -612,7 +575,7 @@ async function handleWatchAd(req, res, body) {
         }
           
         // 11. Success
-        sendSuccess(res, { new_balance: newBalance, actual_reward: reward, ads_watched_today: newAdsCount });
+        sendSuccess(res, { new_balance: newBalance, actual_reward: reward, new_ads_count: newAdsCount });
 
     } catch (error) {
         console.error('WatchAd failed:', error.message);
@@ -736,7 +699,7 @@ async function handleSpinResult(req, res, body) {
             new_balance: newBalance, 
             actual_prize: prize, 
             prize_index: prizeIndex,
-            spins_today: newSpinsCount
+            new_spins_count: newSpinsCount
         });
 
     } catch (error) {
@@ -746,95 +709,62 @@ async function handleSpinResult(req, res, body) {
 }
 
 /**
- * NEW HELPER: Runs the specific check based on task type.
- */
-async function runTaskCheck(userId, task) {
-    switch (task.task_type) {
-        case 'channel_join':
-            return await checkChannelMembership(userId, task.target_value);
-        case 'external_link':
-             // For external links, the verification is assumed to be primarily handled 
-             // by the one-time action_id and rate limit system to verify the user clicked.
-             return true; 
-        default:
-            console.warn(`Unknown task type: ${task.task_type}`);
-            return false;
-    }
-}
-
-
-/**
  * 7) NEW HANDLER: type: "completeTask"
- * ⚠️ Handles the generic task completion logic using 'tasks' and 'user_tasks' tables.
+ * ⚠️ Handles the one-time channel join reward task.
  */
 async function handleCompleteTask(req, res, body) {
-    const { user_id, action_id, task_id } = body;
+    const { user_id, action_id } = body;
     const id = parseInt(user_id);
-    const taskId = parseInt(task_id);
+    const reward = TASK_REWARD;
 
     // 1. Check and Consume Action ID (Security Check)
     if (!await validateAndUseActionId(res, id, action_id, 'completeTask')) return;
 
     try {
-        // 2. Fetch User Data
-        const users = await supabaseFetch('users', 'GET', null, `?id=eq.${id}&select=balance,is_banned`);
-        if (!Array.isArray(users) || users.length === 0 || users[0].is_banned) {
-            return sendError(res, 'User not found or banned.', users[0].is_banned ? 403 : 404);
+        // 2. Fetch current user data
+        const users = await supabaseFetch('users', 'GET', null, `?id=eq.${id}&select=balance,is_banned,task_completed`);
+        if (!Array.isArray(users) || users.length === 0) {
+            return sendError(res, 'User not found.', 404);
         }
+        
         const user = users[0];
 
-        // 3. Fetch Task Details
-        const tasks = await supabaseFetch(TASKS_TABLE, 'GET', null, `?id=eq.${taskId}&select=task_name,task_type,target_value,reward,max_users,is_active`);
-        if (!Array.isArray(tasks) || tasks.length === 0 || !tasks[0].is_active) {
-            return sendError(res, 'Task not found or inactive.', 404);
-        }
-        const task = tasks[0];
-        const reward = parseFloat(task.reward);
-
-        // 4. Check if task is already completed (in user_tasks table)
-        const completed = await supabaseFetch(USER_TASKS_TABLE, 'GET', null, `?user_id=eq.${id}&task_id=eq.${taskId}&select=id`);
-        if (Array.isArray(completed) && completed.length > 0) {
-            return sendError(res, 'Task already completed by this user.', 403);
+        // 3. Banned Check
+        if (user.is_banned) {
+            return sendError(res, 'User is banned.', 403);
         }
         
-        // 5. Check Maximum Users Limit (if max_users is set and not 0)
-        if (task.max_users && task.max_users > 0) {
-            const currentUsers = await supabaseFetch(USER_TASKS_TABLE, 'GET', null, `?task_id=eq.${taskId}&select=id`);
-            if (Array.isArray(currentUsers) && currentUsers.length >= task.max_users) {
-                 return sendError(res, 'Task limit reached. Maximum number of participants completed this task.', 403);
-            }
+        // 4. Check if task is already completed
+        if (user.task_completed) {
+            return sendError(res, 'Task already completed.', 403);
         }
         
-        // 6. Check Rate Limit (Good practice for anti-spam)
+        // 5. Check Rate Limit (Good practice for anti-spam)
         const rateLimitResult = await checkRateLimit(id);
         if (!rateLimitResult.ok) {
             return sendError(res, rateLimitResult.message, 429); 
         }
 
-        // 7. 🚨 CRITICAL: Run Task Specific Verification
-        const isVerified = await runTaskCheck(id, task);
+        // 6. 🚨 CRITICAL: Check Channel Membership using Telegram API
+        const isMember = await checkChannelMembership(id, TELEGRAM_CHANNEL_USERNAME);
 
-        if (!isVerified) {
-            return sendError(res, 'Task verification failed. User has not met the task requirements.', 400);
+        if (!isMember) {
+            return sendError(res, 'User has not joined the required channel.', 400);
         }
 
-        // 8. Process Reward and Update User Data
+        // 7. Process Reward and Update User Data
         const newBalance = user.balance + reward;
         
         const updatePayload = {
             balance: newBalance,
+            task_completed: true, // Mark as completed
             last_activity: new Date().toISOString() // Update for Rate Limit
         };
 
-        // Use a transaction if possible, but for Supabase REST API, we do two sequential calls:
-        // A. Update user balance
         await supabaseFetch('users', 'PATCH', updatePayload, `?id=eq.${id}`);
-        
-        // B. Mark task as completed for the user
-        await supabaseFetch(USER_TASKS_TABLE, 'POST', { user_id: id, task_id: taskId }, '?select=id');
           
-        // 9. Success
-        sendSuccess(res, { new_balance: newBalance, actual_reward: reward, message: `Task '${task.task_name}' completed successfully.` });
+        // 8. Success
+        sendSuccess(res, { new_balance: newBalance, actual_reward: reward, message: 'Task completed successfully.' });
 
     } catch (error) {
         console.error('CompleteTask failed:', error.message);
@@ -850,7 +780,7 @@ async function handleWithdraw(req, res, body) {
     const { user_id, binanceId, amount, action_id } = body;
     const id = parseInt(user_id);
     const withdrawalAmount = parseFloat(amount);
-    const MIN_WITHDRAW = 10000; // ⚠️ تم تغييرها لتناسب الحد الأدنى المذكور في index.html
+    const MIN_WITHDRAW = 400;
 
     // 1. Check and Consume Action ID (Security Check)
     if (!await validateAndUseActionId(res, id, action_id, 'withdraw')) return;
@@ -976,7 +906,7 @@ module.exports = async (req, res) => {
     case 'withdraw':
       await handleWithdraw(req, res, body);
       break;
-    case 'completeTask': // ⬅️ NOW DYNAMIC: Handle the dynamic task logic
+    case 'completeTask': // ⬅️ NEW: Handle the new task logic
       await handleCompleteTask(req, res, body);
       break;
     case 'generateActionId': 
