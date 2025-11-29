@@ -1,406 +1,640 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>لوحة تحكم المشرف - SHIB Ads API</title>
+    <title>SHIB Admin Panel</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7fa;
-            color: #333;
-            margin: 0;
+            font-family: 'Vazirmatn', Arial, Helvetica, sans-serif;
+            background: #e6e6fa; /* خلفية Admin */
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
             padding: 20px;
-            text-align: right;
+            overflow-y: auto;
         }
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
+
+        /* تنسيقات شاشة المسؤول */
+        .admin-screen {
+            width: 100%;
+            max-width: 650px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            transition: opacity .3s ease;
             background: #fff;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            margin-top: 20px;
         }
-        h1, h2, h3 {
-            color: #2c3e50;
-            border-bottom: 2px solid #ecf0f1;
-            padding-bottom: 10px;
+
+        .admin-header {
+            text-align: center;
             margin-bottom: 20px;
         }
-        .section {
-            margin-bottom: 30px;
-            padding: 15px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            background-color: #f9f9f9;
+
+        .admin-title {
+            font-size: 28px;
+            color: #8a2be2;
+            font-weight: 800;
+            text-shadow: 1px 1px 0 rgba(0, 0, 0, 0.05);
         }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-        }
-        input[type="text"], input[type="number"], select {
-            width: 100%;
-            padding: 10px;
-            margin-bottom: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            box-sizing: border-box;
-            text-align: right;
-        }
-        button {
-            background-color: #3498db;
-            color: white;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-            display: inline-block;
+
+        .admin-subtitle {
+            font-size: 16px;
+            color: #555;
             margin-top: 5px;
         }
-        button:hover {
-            background-color: #2980b9;
-        }
-        .status-message {
-            margin-top: 15px;
-            padding: 10px;
-            border-radius: 5px;
-            font-weight: bold;
-            display: none;
-        }
-        .status-success {
-            background-color: #e8f5e9;
-            color: #27ae60;
-        }
-        .status-error {
-            background-color: #fce4ec;
-            color: #c0392b;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-            background-color: #fff;
-        }
-        th, td {
+
+        .content-section {
+            background: #f8f8ff;
+            padding: 15px;
+            border-radius: 12px;
             border: 1px solid #ddd;
-            padding: 12px;
-            text-align: right;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
         }
-        th {
-            background-color: #ecf0f1;
+
+        /* تنسيقات إدارة السحوبات */
+        .history-title {
+            font-size: 20px;
+            color: #333;
+            margin-bottom: 15px;
+            font-weight: 700;
+            text-align: center;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 5px;
+        }
+
+        .admin-list-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .admin-list-item:last-child {
+            border-bottom: none;
+        }
+
+        .user-info-admin {
+            flex-grow: 1;
+            text-align: left;
+            padding-right: 10px;
+        }
+
+        .user-info-admin h4 {
+            margin: 0;
+            font-size: 16px;
+            color: #333;
+            font-weight: 700;
+        }
+
+        .user-info-admin p {
+            margin: 3px 0 0;
+            font-size: 12px;
+            color: #777;
+        }
+
+        .admin-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .action-btn {
+            padding: 7px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all .1s ease;
+            border: none;
+            box-shadow: 0 2px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .action-btn:active {
+            transform: translateY(1px);
+            box-shadow: 0 1px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        .accept-btn {
+            background: #28a745;
+            color: #fff;
+        }
+
+        .reject-btn {
+            background: #dc3545;
+            color: #fff;
+        }
+
+        .ban-btn {
+            background: #ffc107;
             color: #333;
         }
-        .action-cell {
-            white-space: nowrap;
+        
+        /* تنسيقات البحث وتعديل النقاط */
+        .search-section {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .search-input-group {
+            width: 100%;
+            display: flex;
+            gap: 10px;
+        }
+
+        #searchUserId {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .search-btn {
+            background: #007bff;
+            color: #fff;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color .1s ease;
+            box-shadow: 0 2px 0 #0056b3;
+        }
+
+        .search-btn:active {
+            transform: translateY(1px);
+            box-shadow: 0 1px 0 #0056b3;
+        }
+
+        #userResult {
+            width: 100%;
+            padding: 15px;
+            margin-top: 10px;
+            border: 1px dashed #4a90e2;
+            border-radius: 8px;
+            text-align: left;
+            background: #e6f0ff;
+            display: none; /* يتم إظهاره بالـ JS */
+        }
+
+        #userResult p {
+            margin: 5px 0;
+            font-size: 14px;
+            color: #333;
+        }
+
+        .edit-balance-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        #newBalance {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+            text-align: center;
+        }
+
+        .update-btn {
+            background: #ff8c00;
+            color: #fff;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background-color .1s ease;
+            box-shadow: 0 2px 0 #cc7000;
+        }
+
+        .update-btn:active {
+            transform: translateY(1px);
+            box-shadow: 0 1px 0 #cc7000;
+        }
+
+        .no-records {
+            text-align: center;
+            color: #999;
+            padding: 20px;
+        }
+
+        /* Custom Alert - تم نقله من الملف الأصلي */
+        .custom-alert-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+            opacity: 0;
+            transition: opacity .3s ease;
+        }
+
+        .custom-alert-overlay.visible {
+            display: flex;
+            opacity: 1;
+        }
+
+        .custom-alert-box {
+            width: 90%;
+            max-width: 280px;
+            background: #ffffed;
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 8px 15px rgba(0, 0, 0, .3), inset 0 0 10px rgba(0, 0, 0, .05);
+            border: 3px solid #6b4d32;
+            transform: perspective(600px) rotateX(0deg) scale(.9);
+            transition: transform .3s cubic-bezier(.175, .885, .32, 1.275);
+        }
+
+        .custom-alert-overlay.visible .custom-alert-box {
+            transform: perspective(600px) rotateX(0deg) scale(1);
+        }
+
+        .alert-title {
+            font-family: 'Vazirmatn', sans-serif;
+            font-size: 20px;
+            font-weight: 700;
+            color: #4caf50;
+            margin-bottom: 8px;
+            text-shadow: 1px 1px 0 rgba(0, 0, 0, .1);
+            letter-spacing: .5px;
+        }
+
+        .alert-message {
+            font-family: 'Vazirmatn', sans-serif;
+            font-size: 13px;
+            color: #333;
+            margin-bottom: 18px;
+            white-space: pre-wrap;
+        }
+
+        .alert-icon {
+            font-size: 35px;
+            margin-bottom: 12px;
+        }
+
+        .alert-icon::before {
+            content: '⭐';
+        }
+
+        .alert-close-btn {
+            background: #6b4d32;
+            color: #fff;
+            border: none;
+            padding: 9px 18px;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #543b27;
+            transition: all .1s ease;
+        }
+
+        .alert-close-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #543b27;
+        }
+
+        .custom-alert-box.success .alert-title {
+            color: #28a745;
+        }
+
+        .custom-alert-box.success .alert-icon::before {
+            content: '✅';
+        }
+
+        .custom-alert-box.error .alert-title {
+            color: #dc3545;
+        }
+
+        .custom-alert-box.error .alert-icon::before {
+            content: '❌';
+        }
+
+        .custom-alert-box.warning .alert-title {
+            color: #ffc107;
+        }
+
+        .custom-alert-box.warning .alert-icon::before {
+            content: '⚠️';
         }
     </style>
 </head>
 <body>
 
-<div class="container" id="login-container">
-    <h1>تسجيل دخول المشرف</h1>
-    <p>هذه اللوحة تعمل عن طريق إرسال الطلبات إلى ملف <span style="color: #c0392b;">index.js</span> الآمن (API Endpoint).</p>
-    <label for="adminIdInput">معرف المشرف (Admin User ID):</label>
-    <input type="number" id="adminIdInput" value="7741750541" readonly>
-    <label for="apiEndpointInput">عنوان API (نقطة نهاية index.js على Vercel):</label>
-    <input type="text" id="apiEndpointInput" placeholder="https://your-project.vercel.app/api">
-    <button onclick="loginAdmin()">الدخول إلى لوحة التحكم</button>
-    <div id="loginStatus" class="status-message"></div>
-</div>
-
-<div class="container" id="admin-panel" style="display: none;">
-    <h1>لوحة تحكم المشرف 🚀</h1>
-    <p>مرحباً بك، المشرف **<span id="adminName"></span>** (ID: 7741750541)</p>
-    
-    <hr>
-
-    <div class="section">
-        <h2>سحوبات المستخدمين المعلقة 💰</h2>
-        <button onclick="fetchPendingWithdrawals()">تحديث قائمة السحوبات</button>
-        <div id="withdrawalStatus" class="status-message"></div>
-        <div id="pendingWithdrawalsList">
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>User ID</th>
-                        <th>المبلغ</th>
-                        <th>Binance ID/Wallet</th>
-                        <th>تاريخ الطلب</th>
-                        <th class="action-cell">الإجراء</th>
-                    </tr>
-                </thead>
-                <tbody id="withdrawalsBody">
-                    <tr><td colspan="6">الرجاء إدخال عنوان API أولاً.</td></tr>
-                </tbody>
-            </table>
+    <div class="admin-screen" id="adminScreen">
+        <div class="admin-header">
+            <h2 class="admin-title">👑 لوحة تحكم المسؤول</h2>
+            <div class="admin-subtitle">إدارة السحوبات | تعديل النقاط | حظر المستخدمين</div>
         </div>
-    </div>
 
-    <hr>
+        <div class="content-section">
+            <h3 class="history-title">🔍 البحث وتعديل نقاط المستخدم</h3>
+            <div class="search-section">
+                <div class="search-input-group">
+                    <input type="text" id="searchUserId" placeholder="أدخل معرّف المستخدم (User ID)">
+                    <button class="search-btn" onclick="searchUser()">بحث</button>
+                </div>
+                
+                <div id="userResult" style="display: none;">
+                    <h4>بيانات المستخدم: <span id="resUserName"></span> (<span id="resUserId"></span>)</h4>
+                    <p>الرصيد الحالي: <span id="resUserBalance">0 SHIB</span></p>
+                    <p>الحالة: <span id="resUserStatus">غير محظور</span></p>
 
-    <div class="section">
-        <h2>البحث عن مستخدم وتعديل بياناته 🔍</h2>
-        <label for="searchUserId">بحث عن مستخدم (User ID):</label>
-        <input type="number" id="searchUserId" placeholder="أدخل معرف المستخدم">
-        <button onclick="searchUser()">بحث</button>
-
-        <div id="userProfile" style="margin-top: 20px; border-top: 1px solid #ccc; padding-top: 15px; display: none;">
-            <h3>بيانات المستخدم: <span id="currentUserId"></span></h3>
-            <p>الرصيد الحالي: **<span id="currentBalance"></span> SHIB**</p>
-            <p>حالة الحظر: **<span id="currentBanStatus"></span>**</p>
-
-            <label for="newBalance">تعديل الرصيد إلى:</label>
-            <input type="number" id="newBalance" placeholder="قيمة الرصيد الجديدة">
-            <button onclick="updateUserBalance()">تعديل الرصيد</button>
-
-            <div style="margin-top: 10px;">
-                <label for="banStatusSelect">تغيير حالة الحظر:</label>
-                <select id="banStatusSelect">
-                    <option value="false">إلغاء الحظر</option>
-                    <option value="true">حظر المستخدم</option>
-                </select>
-                <button onclick="updateUserBanStatus()">تحديث حالة الحظر</button>
+                    <div class="edit-balance-group">
+                        <input type="number" id="newBalance" placeholder="الرصيد الجديد SHIB">
+                        <button class="update-btn" onclick="updateUserBalance()">تعديل الرصيد</button>
+                        <button class="action-btn ban-btn" id="resBanBtn" onclick="toggleBanUser()">حظر/إلغاء الحظر</button>
+                    </div>
+                </div>
             </div>
-            <div id="userUpdateStatus" class="status-message"></div>
+        </div>
+
+        <div class="content-section">
+            <h3 class="history-title">💳 طلبات السحب المعلقة</h3>
+            <div id="pendingWithdrawalsList">
+                <div class="no-records">جاري تحميل طلبات السحب...</div>
+            </div>
+        </div>
+        
+    </div>
+
+    <div id="customAlert" class="custom-alert-overlay">
+        <div class="custom-alert-box">
+            <div class="alert-icon" id="alertIcon"></div>
+            <div class="alert-title" id="alertTitle"></div>
+            <div class="alert-message" id="alertMessage"></div>
+            <button class="alert-close-btn" onclick="document.getElementById('customAlert').classList.remove('visible')">حسناً</button>
         </div>
     </div>
-</div>
 
-<script>
-    // ⚠️ يجب أن يتطابق هذا المعرف مع قيمة ADMIN_USER_ID في ملف index.js
-    const ADMIN_USER_ID = 7741750541; 
-    let API_ENDPOINT = ''; 
+    <script>
+        // إعدادات أساسية لعمل لوحة التحكم
+        const API_URL = '/api';
+        const customAlert = document.getElementById('customAlert');
+        const alertBox = customAlert.querySelector('.custom-alert-box');
+        const alertTitleEl = document.getElementById('alertTitle');
+        const alertMessageEl = document.getElementById('alertMessage');
+        const adminUserId = '7741750541'; // هذا هو معرّف المسؤول الوحيد المسموح له بالوصول
 
-    let currentSearchedUser = null;
+        let tgUser = null;
+        let searchedUser = null; // لتخزين بيانات المستخدم الذي تم البحث عنه
 
-    /**
-     * إرسال طلب POST آمن إلى API (index.js)
-     */
-    async function sendAdminRequest(action, target_id = null, new_value = null, withdrawal_id = null, amount = null) {
-        if (!API_ENDPOINT) {
-            alert('الرجاء إدخال عنوان API أولاً.');
-            return { ok: false, error: 'API endpoint not set.' };
+        // 1. وظيفة عرض التنبيهات (Custom Alert)
+        function showCustomAlert(title, message, type = "warning") {
+            const cleanMessage = message.replace(/(\r\n|\n|\r)/gm, "\n");
+            alertTitleEl.textContent = title;
+            alertMessageEl.textContent = cleanMessage;
+            alertBox.classList.remove("success", "error", "warning");
+            alertBox.classList.add(type);
+            customAlert.classList.add('visible');
+            // لا يوجد تشغيل صوت هنا لعدم وجود ملفات الصوت
         }
 
-        const payload = {
-            type: 'adminAction',
-            user_id: ADMIN_USER_ID, 
-            action,
-            target_id,
-            new_value,
-            withdrawal_id,
-            amount
+        // 2. معالجة بيانات الإطلاق من Telegram Mini App
+        Telegram.WebApp.ready();
+        if (Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
+            tgUser = Telegram.WebApp.initDataUnsafe.user;
+        }
+
+        // 3. دالة جلب بيانات API (معدلة لـ Admin)
+        async function fetchApi(data) {
+            if (!tgUser || tgUser.id.toString() !== adminUserId) {
+                showCustomAlert('خطأ في الوصول', 'أنت لست مسؤولاً مخولاً. [CODE: NOT_ADMIN]', 'error');
+                return { ok: false, error: 'Not Admin' };
+            }
+            const initData = Telegram.WebApp.initData;
+            if (!initData) {
+                showCustomAlert('خطأ حرج!', 'بيانات الإطلاق مفقودة. يرجى إعادة تشغيل التطبيق. [CODE: ID_MS]', 'error');
+                return { ok: false, error: 'InitData missing' };
+            }
+            
+            if (typeof Telegram.WebApp.showProgress === 'function') Telegram.WebApp.showProgress();
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...data, user_id: tgUser.id, initData: initData })
+                });
+
+                if (typeof Telegram.WebApp.hideProgress === 'function') Telegram.WebApp.hideProgress();
+
+                const result = await response.json();
+
+                if (!response.ok || !result.ok) {
+                    const errorMsg = result.error || `خطأ في الخادم: ${response.status} ${response.statusText}`;
+                    showCustomAlert('فشلت العملية!', errorMsg, 'error');
+                    return { ok: false, error: errorMsg };
+                }
+
+                return result;
+
+            } catch (e) {
+                if (typeof Telegram.WebApp.hideProgress === 'function') Telegram.WebApp.hideProgress();
+                console.error(`General Fetch Error for type ${data.type}:`, e.message);
+                showCustomAlert('خطأ في الاتصال!', 'تعذر الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت.', 'error');
+                return { ok: false, error: e.message };
+            }
+        }
+
+        // 4. دالة جلب معرّف العملية (Action ID)
+        async function requestActionId(actionType) {
+            const result = await fetchApi({ type: 'generateActionId', action_type: actionType });
+            return result.ok ? result.data.action_id : null;
+        }
+        
+        // 5. تحميل بيانات لوحة التحكم (السحوبات المعلقة)
+        async function loadAdminData() {
+            if (!tgUser || tgUser.id.toString() !== adminUserId) {
+                document.getElementById('pendingWithdrawalsList').innerHTML = '<div class="no-records">لا توجد صلاحية للوصول إلى لوحة التحكم.</div>';
+                return;
+            }
+
+            const result = await fetchApi({ type: 'getPendingWithdrawals' });
+            if (result.ok) {
+                displayPendingWithdrawals(result.data.pending_withdrawals);
+            } else {
+                displayPendingWithdrawals([]);
+            }
+        }
+
+        // 6. عرض طلبات السحب المعلقة
+        function displayPendingWithdrawals(requests) {
+            const listEl = document.getElementById('pendingWithdrawalsList');
+            if (!requests || requests.length === 0) {
+                listEl.innerHTML = '<div class="no-records">لا توجد طلبات سحب معلقة حالياً.</div>';
+                return;
+            }
+
+            let html = '';
+            requests.forEach(req => {
+                html += `
+                    <div class="admin-list-item" data-request-id="${req.id}">
+                        <div class="user-info-admin">
+                            <h4>معرّف المستخدم (ID): ${req.user_id}</h4>
+                            <p>المبلغ: ${req.amount.toLocaleString()} SHIB | معرّف Binance: ${req.binance_id} | التاريخ: ${new Date(req.created_at).toLocaleDateString('en-GB')}</p>
+                        </div>
+                        <div class="admin-actions">
+                            <button class="action-btn accept-btn" onclick="handleAdminAction('${req.id}','accept', '${req.user_id}')">قبول</button>
+                            <button class="action-btn reject-btn" onclick="handleAdminAction('${req.id}','reject', '${req.user_id}')">رفض</button>
+                            <button class="action-btn ban-btn" onclick="handleAdminAction('${req.id}','ban','${req.user_id}')">حظر</button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            listEl.innerHTML = html;
+        }
+
+        // 7. معالجة إجراءات المسؤول (قبول/رفض/حظر)
+        async function handleAdminAction(requestId, action, userIdToBan = null) {
+            const actionId = await requestActionId('adminAction');
+            if (!actionId) return;
+
+            const result = await fetchApi({
+                type: 'adminAction',
+                request_id: requestId,
+                action: action,
+                user_to_ban: userIdToBan,
+                action_id: actionId
+            });
+
+            if (result.ok) {
+                loadAdminData();
+                showCustomAlert('نجاح!', `تم تنفيذ الإجراء (${action}) بنجاح.`, 'success');
+            }
+        }
+        
+        // 8. البحث عن المستخدم (لإدارة النقاط والحظر الفردي)
+        async function searchUser() {
+            const userId = document.getElementById('searchUserId').value.trim();
+            const userResultEl = document.getElementById('userResult');
+            userResultEl.style.display = 'none';
+            searchedUser = null;
+
+            if (!userId) {
+                return showCustomAlert('تنبيه!', 'يرجى إدخال معرّف المستخدم.', 'warning');
+            }
+            
+            const actionId = await requestActionId('searchUser');
+            if (!actionId) return;
+
+            const result = await fetchApi({
+                type: 'searchUser',
+                search_user_id: userId,
+                action_id: actionId
+            });
+
+            if (result.ok && result.data.user) {
+                searchedUser = result.data.user;
+                document.getElementById('resUserName').textContent = searchedUser.username || searchedUser.first_name || 'N/A';
+                document.getElementById('resUserId').textContent = searchedUser.user_id;
+                document.getElementById('resUserBalance').textContent = searchedUser.balance.toLocaleString() + ' SHIB';
+                document.getElementById('resUserStatus').textContent = searchedUser.is_banned ? 'محظور ❌' : 'غير محظور ✅';
+                
+                const banBtn = document.getElementById('resBanBtn');
+                banBtn.textContent = searchedUser.is_banned ? 'إلغاء الحظر' : 'حظر';
+                banBtn.classList.toggle('reject-btn', !searchedUser.is_banned);
+                
+                document.getElementById('newBalance').value = searchedUser.balance;
+                userResultEl.style.display = 'block';
+                showCustomAlert('تم العثور على المستخدم!', `المستخدم ${searchedUser.user_id} جاهز للتعديل.`, 'success');
+
+            } else {
+                showCustomAlert('لم يتم العثور!', 'لم يتم العثور على مستخدم بالمعرّف المُدخل.', 'error');
+            }
+        }
+
+        // 9. تحديث رصيد المستخدم
+        async function updateUserBalance() {
+            if (!searchedUser) {
+                return showCustomAlert('تنبيه!', 'يرجى البحث عن مستخدم أولاً.', 'warning');
+            }
+
+            const newBalance = parseInt(document.getElementById('newBalance').value);
+            if (isNaN(newBalance) || newBalance < 0) {
+                return showCustomAlert('خطأ في الرصيد!', 'يرجى إدخال رصيد صحيح (رقم موجب).', 'warning');
+            }
+
+            const actionId = await requestActionId('updateBalance');
+            if (!actionId) return;
+
+            const result = await fetchApi({
+                type: 'updateBalance',
+                target_user_id: searchedUser.user_id,
+                new_balance: newBalance,
+                action_id: actionId
+            });
+
+            if (result.ok) {
+                searchedUser.balance = newBalance;
+                document.getElementById('resUserBalance').textContent = newBalance.toLocaleString() + ' SHIB';
+                showCustomAlert('نجاح!', `تم تحديث رصيد المستخدم ${searchedUser.user_id} إلى ${newBalance.toLocaleString()} SHIB.`, 'success');
+            }
+        }
+
+        // 10. تبديل حالة الحظر/إلغاء الحظر للمستخدم
+        async function toggleBanUser() {
+            if (!searchedUser) {
+                return showCustomAlert('تنبيه!', 'يرجى البحث عن مستخدم أولاً.', 'warning');
+            }
+            
+            const action = searchedUser.is_banned ? 'unban' : 'ban';
+            
+            const actionId = await requestActionId('toggleBan');
+            if (!actionId) return;
+
+            const result = await fetchApi({
+                type: 'toggleBan',
+                target_user_id: searchedUser.user_id,
+                action: action,
+                action_id: actionId
+            });
+
+            if (result.ok) {
+                searchedUser.is_banned = !searchedUser.is_banned;
+                document.getElementById('resUserStatus').textContent = searchedUser.is_banned ? 'محظور ❌' : 'غير محظور ✅';
+                
+                const banBtn = document.getElementById('resBanBtn');
+                banBtn.textContent = searchedUser.is_banned ? 'إلغاء الحظر' : 'حظر';
+                banBtn.classList.toggle('reject-btn', !searchedUser.is_banned);
+
+                showCustomAlert('نجاح!', `تم ${action === 'ban' ? 'حظر' : 'إلغاء حظر'} المستخدم ${searchedUser.user_id}.`, 'success');
+            }
+        }
+        
+        // عند تحميل الصفحة، تأكد من صلاحية المسؤول وتحميل البيانات
+        window.onload = function() {
+            if (tgUser && tgUser.id.toString() === adminUserId) {
+                loadAdminData();
+            } else {
+                document.getElementById('adminScreen').innerHTML = '<div class="admin-header"><h2 class="admin-title">👑 لوحة تحكم المسؤول</h2></div><div class="content-section"><div class="no-records" style="color:#dc3545; font-weight:700;">لا تملك صلاحيات المسؤول.</div></div>';
+            }
         };
 
-        try {
-            const response = await fetch(API_ENDPOINT, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload),
-            });
-
-            const data = await response.json();
-            
-            if (!data.ok) {
-                console.error('API Error:', data.error);
-                return { ok: false, error: data.error || 'Unknown API Error' };
-            }
-            return { ok: true, data: data.data };
-
-        } catch (error) {
-            console.error('Network or communication error:', error.message);
-            return { ok: false, error: 'Network Error: ' + error.message };
-        }
-    }
-
-    /**
-     * الدخول إلى لوحة التحكم
-     */
-    function loginAdmin() {
-        const adminId = parseInt(document.getElementById('adminIdInput').value);
-        const apiEndpoint = document.getElementById('apiEndpointInput').value.trim();
-        const loginStatus = document.getElementById('loginStatus');
-        
-        if (adminId === ADMIN_USER_ID && apiEndpoint.length > 10) {
-            API_ENDPOINT = apiEndpoint;
-            document.getElementById('login-container').style.display = 'none';
-            document.getElementById('admin-panel').style.display = 'block';
-            document.getElementById('adminName').textContent = 'المشرف الرئيسي';
-            loginStatus.style.display = 'none';
-            fetchPendingWithdrawals(); 
-        } else {
-            loginStatus.textContent = 'معرف المشرف غير صحيح أو عنوان API مفقود.';
-            loginStatus.className = 'status-message status-error';
-            loginStatus.style.display = 'block';
-        }
-    }
-
-    /**
-     * عرض رسالة حالة
-     */
-    function showStatus(elementId, message, isSuccess) {
-        const element = document.getElementById(elementId);
-        element.textContent = message;
-        element.className = 'status-message ' + (isSuccess ? 'status-success' : 'status-error');
-        element.style.display = 'block';
-        setTimeout(() => element.style.display = 'none', 5000);
-    }
-
-    /**
-     * جلب سحوبات المستخدمين المعلقة
-     */
-    async function fetchPendingWithdrawals() {
-        const result = await sendAdminRequest('fetchPendingWithdrawals');
-        const tbody = document.getElementById('withdrawalsBody');
-        tbody.innerHTML = ''; 
-
-        if (!result.ok) {
-             tbody.innerHTML = `<tr><td colspan="6" style="color: red;">فشل جلب السحوبات: ${result.error}</td></tr>`;
-             return showStatus('withdrawalStatus', 'فشل جلب السحوبات.', false);
-        }
-
-        const data = result.data.withdrawals || [];
-
-        if (data.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6">لا توجد سحوبات معلقة حاليًا.</td></tr>';
-        } else {
-            data.forEach(item => {
-                const row = tbody.insertRow();
-                row.insertCell().textContent = item.id;
-                row.insertCell().textContent = item.user_id;
-                row.insertCell().textContent = item.amount;
-                row.insertCell().textContent = item.binance_id || 'N/A';
-                row.insertCell().textContent = new Date(item.created_at).toLocaleString();
-                
-                const actionCell = row.insertCell();
-                actionCell.className = 'action-cell';
-                
-                // زر الموافقة
-                const approveBtn = document.createElement('button');
-                approveBtn.textContent = 'تنفيذ (مكتمل)';
-                approveBtn.style.backgroundColor = '#2ecc71';
-                approveBtn.style.marginLeft = '10px';
-                approveBtn.onclick = () => updateWithdrawalStatus(item.id, item.user_id, 'completed', item.amount);
-                actionCell.appendChild(approveBtn);
-
-                // زر الرفض
-                const rejectBtn = document.createElement('button');
-                rejectBtn.textContent = 'رفض (ملغى)';
-                rejectBtn.style.backgroundColor = '#e74c3c';
-                rejectBtn.onclick = () => updateWithdrawalStatus(item.id, item.user_id, 'cancelled', item.amount);
-                actionCell.appendChild(rejectBtn);
-            });
-        }
-        showStatus('withdrawalStatus', `تم جلب ${data.length} طلب سحب معلق.`, true);
-    }
-
-    /**
-     * تحديث حالة السحب (مكتمل/ملغى)
-     */
-    async function updateWithdrawalStatus(withdrawalId, userId, newStatus, amount) {
-        if (!confirm(`هل أنت متأكد من تغيير حالة السحب #${withdrawalId} لـ ${userId} إلى '${newStatus}'؟`)) {
-            return;
-        }
-
-        const result = await sendAdminRequest(
-            'processWithdrawal', 
-            userId, 
-            newStatus, 
-            withdrawalId, 
-            amount
-        );
-
-        if (result.ok) {
-            showStatus('withdrawalStatus', result.data.message, true);
-            fetchPendingWithdrawals(); 
-        } else {
-            showStatus('withdrawalStatus', 'فشل تحديث حالة السحب: ' + result.error, false);
-        }
-    }
-
-    /**
-     * البحث عن مستخدم بواسطة ID
-     */
-    async function searchUser() {
-        const userId = parseInt(document.getElementById('searchUserId').value);
-        if (!userId) return showStatus('userUpdateStatus', 'الرجاء إدخال User ID.', false);
-        
-        const result = await sendAdminRequest('fetchUser', userId);
-
-        if (!result.ok) {
-            document.getElementById('userProfile').style.display = 'none';
-            return showStatus('userUpdateStatus', result.error, false);
-        }
-
-        const data = result.data.user;
-        currentSearchedUser = data;
-        
-        // تحديث واجهة المستخدم
-        document.getElementById('currentUserId').textContent = data.id;
-        document.getElementById('currentBalance').textContent = data.balance;
-        document.getElementById('currentBanStatus').textContent = data.is_banned ? 'محظور (BANNED)' : 'نشط';
-        document.getElementById('newBalance').value = data.balance;
-        document.getElementById('banStatusSelect').value = data.is_banned.toString();
-        document.getElementById('userProfile').style.display = 'block';
-
-        showStatus('userUpdateStatus', `تم العثور على المستخدم ${userId}.`, true);
-    }
-
-    /**
-     * تحديث رصيد المستخدم
-     */
-    async function updateUserBalance() {
-        if (!currentSearchedUser) return showStatus('userUpdateStatus', 'الرجاء البحث عن مستخدم أولاً.', false);
-        
-        const newBalance = parseFloat(document.getElementById('newBalance').value);
-        if (isNaN(newBalance) || newBalance < 0) return showStatus('userUpdateStatus', 'قيمة الرصيد غير صالحة.', false);
-
-        if (!confirm(`هل أنت متأكد من تغيير رصيد المستخدم ${currentSearchedUser.id} إلى ${newBalance} SHIB؟`)) {
-            return;
-        }
-
-        const result = await sendAdminRequest('updateBalance', currentSearchedUser.id, newBalance);
-
-        if (result.ok) {
-            currentSearchedUser.balance = newBalance;
-            document.getElementById('currentBalance').textContent = newBalance;
-            showStatus('userUpdateStatus', result.data.message, true);
-        } else {
-            showStatus('userUpdateStatus', 'فشل تحديث الرصيد: ' + result.error, false);
-        }
-    }
-
-    /**
-     * تحديث حالة حظر المستخدم
-     */
-    async function updateUserBanStatus() {
-        if (!currentSearchedUser) return showStatus('userUpdateStatus', 'الرجاء البحث عن مستخدم أولاً.', false);
-        
-        const isBanned = document.getElementById('banStatusSelect').value;
-        const actionText = isBanned === 'true' ? 'حظر' : 'إلغاء حظر';
-        if (!confirm(`هل أنت متأكد من ${actionText} المستخدم ${currentSearchedUser.id}؟`)) {
-            return;
-        }
-
-        const result = await sendAdminRequest('updateBanStatus', currentSearchedUser.id, isBanned);
-
-        if (result.ok) {
-            currentSearchedUser.is_banned = isBanned === 'true';
-            document.getElementById('currentBanStatus').textContent = currentSearchedUser.is_banned ? 'محظور (BANNED)' : 'نشط';
-            document.getElementById('banStatusSelect').value = isBanned;
-            showStatus('userUpdateStatus', result.data.message, true);
-        } else {
-            showStatus('userUpdateStatus', 'فشل تحديث حالة الحظر: ' + result.error, false);
-        }
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        document.getElementById('adminIdInput').value = ADMIN_USER_ID;
-    });
-
-</script>
+    </script>
 </body>
 </html>
