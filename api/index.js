@@ -851,7 +851,7 @@ async function handleWithdraw(req, res, body) {
 /**
  * HANDLER: type: "searchUser"
  * Allows admin to securely fetch any user's data.
- * 🚨 NEW: Added this handler to fix the 'User not found' issue in the admin panel.
+ * 🚨 NEW: Added ads_watched_today and spins_today to the select query.
  */
 async function handleSearchUser(req, res, body) {
     const { user_id, search_user_id, action_id } = body;
@@ -868,8 +868,8 @@ async function handleSearchUser(req, res, body) {
     }
 
     try {
-        // 2. Fetch user data (including banned status, username, first_name)
-        const users = await supabaseFetch('users', 'GET', null, `?id=eq.${targetUserId}&select=id,balance,is_banned,username,first_name`);
+        // 2. Fetch user data (including banned status, username, first_name, and counters)
+        const users = await supabaseFetch('users', 'GET', null, `?id=eq.${targetUserId}&select=id,balance,is_banned,username,first_name,ads_watched_today,spins_today`);
 
         if (!Array.isArray(users) || users.length === 0) {
             // 🚨 Custom Error Message for Frontend
@@ -885,7 +885,9 @@ async function handleSearchUser(req, res, body) {
                 balance: userData.balance,
                 is_banned: userData.is_banned,
                 username: userData.username,
-                first_name: userData.first_name
+                first_name: userData.first_name,
+                ads_watched_today: userData.ads_watched_today, // ⬅️ NEW
+                spins_today: userData.spins_today // ⬅️ NEW
             }
         });
 
