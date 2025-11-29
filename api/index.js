@@ -40,7 +40,7 @@ const TELEGRAM_CHANNEL_USERNAME = '@botbababab'; // يجب أن يكون هذا 
  * Helper function to randomly select a prize from the defined sectors and return its index.
  */
 function calculateRandomSpinPrize() {
-    const randomIndex = Math.floor(ńst.random() * SPIN_SECTORS.length);
+    const randomIndex = Math.floor(Math.random() * SPIN_SECTORS.length);
     const prize = SPIN_SECTORS[randomIndex];
     return { prize, prizeIndex: randomIndex };
 }
@@ -849,6 +849,114 @@ async function handleWithdraw(req, res, body) {
 // ------------------------------------------------------------------
 
 /**
+ * HANDLER: type: "searchUser"
+ * Allows admin to securely fetch any user's data.
+ * 🚨 NEW: Added this handler to fix the 'User not found' issue in the admin panel.
+ */
+async function handleSearchUser(req, res, body) {
+    const { user_id, search_user_id, action_id } = body;
+    const targetUserId = parseInt(search_user_id);
+    
+    // 1. Admin & Action ID Check
+    if (!isAdminUser(user_id)) {
+        return sendError(res, 'Access Denied: Not an Admin.', 403);
+    }
+    if (!await validateAndUseActionId(res, user_id, action_id, 'searchUser')) return;
+
+    if (!search_user_id || isNaN(targetUserId)) {
+        return sendError(res, 'Missing or Invalid search_user_id.', 400);
+    }
+
+    try {
+        // 2. Fetch user data (including banned status, username, first_name)
+        const users = await supabaseFetch('users', 'GET', null, `?id=eq.${targetUserId}&select=id,balance,is_banned,username,first_name`);
+
+        if (!Array.isArray(users) || users.length === 0) {
+            // 🚨 Custom Error Message for Frontend
+            return sendError(res, 'لم يتم العثور على المستخدم في قاعدة البيانات. يرجى التأكد من كتابة معرّف المستخدم بشكل صحيح.', 404); 
+        }
+
+        const userData = users[0];
+        
+        // 3. Return the data
+        sendSuccess(res, {
+            user: {
+                user_id: userData.id.toString(),
+                balance: userData.balance,
+                is_banned: userData.is_banned,
+                username: userData.username,
+                first_name: userData.first_name
+            }
+        });
+
+    } catch (error) {
+        console.error('SearchUser failed:', error.message);
+        sendError(res, `فشل في استرداد بيانات المستخدم: ${error.message}`, 500);
+    }
+}
+
+/**
+ * HANDLER: type: "updateBalance"
+ * 🚨 NEW: Allows admin to update a specific user's balance.
+ */
+async function handleUpdateBalance(req, res, body) {
+    const { user_id, target_user_id, new_balance, action_id } = body;
+    const targetUserId = parseInt(target_user_id);
+    const balance = parseInt(new_balance);
+
+    if (!isAdminUser(user_id)) {
+        return sendError(res, 'Access Denied: Not an Admin.', 403);
+    }
+    if (!await validateAndUseActionId(res, user_id, action_id, 'updateBalance')) return;
+
+    if (!target_user_id || isNaN(targetUserId) || isNaN(balance) || balance < 0) {
+        return sendError(res, 'Missing or Invalid user ID or balance.', 400);
+    }
+
+    try {
+        const updatePayload = { balance: balance };
+        await supabaseFetch('users', 'PATCH', updatePayload, `?id=eq.${targetUserId}`);
+
+        sendSuccess(res, { message: `Balance updated for user ${targetUserId}.` });
+
+    } catch (error) {
+        console.error('UpdateBalance failed:', error.message);
+        sendError(res, `فشل في تحديث الرصيد: ${error.message}`, 500);
+    }
+}
+
+/**
+ * HANDLER: type: "toggleBan"
+ * 🚨 NEW: Allows admin to ban or unban a specific user.
+ */
+async function handleToggleBan(req, res, body) {
+    const { user_id, target_user_id, action, action_id } = body;
+    const targetUserId = parseInt(target_user_id);
+
+    if (!isAdminUser(user_id)) {
+        return sendError(res, 'Access Denied: Not an Admin.', 403);
+    }
+    if (!await validateAndUseActionId(res, user_id, action_id, 'toggleBan')) return;
+
+    if (!target_user_id || isNaN(targetUserId) || (action !== 'ban' && action !== 'unban')) {
+        return sendError(res, 'Missing or Invalid user ID or action.', 400);
+    }
+
+    try {
+        const isBanning = action === 'ban';
+        const updatePayload = { is_banned: isBanning };
+        await supabaseFetch('users', 'PATCH', updatePayload, `?id=eq.${targetUserId}`);
+
+        sendSuccess(res, { message: `User ${targetUserId} ${isBanning ? 'banned' : 'unbanned'}.` });
+
+    } catch (error) {
+        console.error('ToggleBan failed:', error.message);
+        sendError(res, `فشل في تبديل حالة الحظر: ${error.message}`, 500);
+    }
+}
+
+
+/**
  * Handles fetching all pending withdrawal requests.
  */
 async function handleGetPendingWithdrawals(req, res, body) {
@@ -1018,7 +1126,10 @@ module.exports = async (req, res) => {
       'withdraw',          // محمي بـ Action ID
       'completeTask',      // محمي بـ Action ID
       'getPendingWithdrawals', // محمي بـ isAdminUser
-      'adminAction'        // محمي بـ Action ID و isAdminUser
+      'adminAction',        // محمي بـ Action ID و isAdminUser
+      'searchUser',        // ⬅️ NEW: Admin Search
+      'updateBalance',     // ⬅️ NEW: Admin Balance Update
+      'toggleBan'          // ⬅️ NEW: Admin Ban/Unban
   ];
 
   // تطبيق التحقق الصارم لـ initData فقط على طلبات الاتصال الأولية (getUserData و register)
@@ -1056,13 +1167,22 @@ module.exports = async (req, res) => {
     case 'withdraw':
       await handleWithdraw(req, res, body);
       break;
-    case 'completeTask': // ⬅️ NEW: Handle the new task logic
+    case 'completeTask': 
       await handleCompleteTask(req, res, body);
       break;
     case 'generateActionId': 
       await handleGenerateActionId(req, res, body);
       break;
     // ⬅️ NEW: Admin Handlers
+    case 'searchUser': // ⬅️ NEW
+      await handleSearchUser(req, res, body);
+      break;
+    case 'updateBalance': // ⬅️ NEW
+      await handleUpdateBalance(req, res, body);
+      break;
+    case 'toggleBan': // ⬅️ NEW
+      await handleToggleBan(req, res, body);
+      break;
     case 'getPendingWithdrawals': 
       await handleGetPendingWithdrawals(req, res, body);
       break;
