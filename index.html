@@ -868,32 +868,32 @@
             return null; // Error message already shown by fetchApi
         }
 
-        /* ===== Initial Load and Registration ===== */
+        /* ===== Initial Load and Registration (FIXED) ===== */
         async function registerUser() {
             if (!tgUser) {
-                 showCustomAlert('User Error!', 'Could not get Telegram user data. Please open the Mini App from a Telegram chat.', 'error');
+                 showCustomAlert('User Error!', 'تعذر الحصول على بيانات مستخدم تيليجرام. يرجى فتح التطبيق المصغر من محادثة تيليجرام.', 'error');
+                 loadingScreen.classList.add('hidden'); // ⬅️ FIX: إخفاء شاشة التحميل في حالة خطأ بيانات المستخدم
                 return;
             }
             const result = await fetchApi({ type: 'register' });
 
-            if (result.ok) {
-                // Initial data load after registration
+            // A single check for success (either true OK or 'already exists' OK)
+            if (result.ok || (result.error && result.error.includes('already exists'))) {
+                // Initial data load after registration or if already exists
                 await loadUserData(); 
-                loadingScreen.classList.add('hidden');
-                mainScreen.classList.add('visible');
-            } else if (result.error && result.error.includes('already exists')) {
-                // User already registered, proceed to data load
-                await loadUserData();
-                loadingScreen.classList.add('hidden');
-                mainScreen.classList.add('visible');
+                // نعتمد على loadUserData لإتمام الانتقال (إخفاء التحميل وإظهار الشاشة الرئيسية)
             } else {
-                // Registration failed for other reasons (e.g., banned)
+                // Registration failed for other reasons (e.g., API error)
                 showCustomAlert('Registration Failed!', result.error, 'error');
+                loadingScreen.classList.add('hidden'); // ⬅️ FIX: إخفاء شاشة التحميل في حالة فشل التسجيل
             }
         }
 
         async function loadUserData() {
-            if (!tgUser) return;
+            if (!tgUser) {
+                loadingScreen.classList.add('hidden'); // إخفاء دفاعي
+                return;
+            }
             const result = await fetchApi({ type: 'getUserData' });
             
             if (result.ok) {
@@ -902,6 +902,7 @@
                     mainScreen.classList.remove('visible');
                     // Arabic translation of the alert message
                     showCustomAlert('تم حظر الحساب!', 'تم تقييد هذا الحساب بشكل دائم لانتهاكه السياسات. يُمنع الوصول إلى التطبيق المصغر.', 'error');
+                    loadingScreen.classList.add('hidden'); // ⬅️ FIX: إخفاء شاشة التحميل في حالة الحظر
                     return;
                 }
                 
@@ -913,10 +914,15 @@
                     referrals_count: result.data.referrals_count,
                     is_banned: false,
                     withdrawal_history: (result.data.withdrawal_history || []).map(item => ({ amount: item.amount, status: item.status, date: new Date(item.created_at).toLocaleDateString('en-GB') })),
-                    dynamicTasks: result.data.tasks || [] // ⬅️ NEW: Capture the dynamic tasks array
+                    dynamicTasks: result.data.tasks || [] // ⬅️ Capture the dynamic tasks array
                 }); 
                 
+                // 🌟 الانتقال النهائي للواجهة (Success Path)
+                loadingScreen.classList.add('hidden');
                 mainScreen.classList.add('visible');
+            } else {
+                 // Load user data failed (e.g., network error, API error after registration)
+                loadingScreen.classList.add('hidden'); // ⬅️ FIX: إخفاء شاشة التحميل في حالة فشل جلب البيانات
             }
         }
 
@@ -1519,38 +1525,4 @@
                 displayWithdrawals(); 
                 
                 // Arabic translation of the alert message
-                showCustomAlert('تم إرسال الطلب!', `التفاصيل:\nمعرف Binance: ${binanceId}\nالمبلغ: ${amount.toLocaleString()} SHIB\n\nسيتم معالجة التحويل في غضون 24 ساعة.`, 'success');
-            }
-        }
-
-        /* ===== Invite Functions (No changes needed) ===== */
-        function generateReferralLink() {
-            if (!tgUser || !tgUser.id) return;
-            // Link format: t.me/bot_username?start=ref_{user_id}
-            const botUsername = Telegram.WebApp.initDataUnsafe.start_param ? Telegram.WebApp.initDataUnsafe.start_param.replace('ref_', '') : 'YOUR_BOT_USERNAME'; // Placeholder or dynamic if possible
-            const link = `https://t.me/${botUsername}?start=ref_${tgUser.id}`;
-            document.getElementById('referralLinkInput').value = link;
-        }
-
-        function copyReferralLink() {
-            const linkInput = document.getElementById('referralLinkInput');
-            linkInput.select();
-            linkInput.setSelectionRange(0, 99999); // For mobile devices
-            navigator.clipboard.writeText(linkInput.value)
-            .then(() => {
-                showCustomAlert('تم النسخ!', 'تم نسخ رابط الإحالة إلى الحافظة.', 'success');
-            }).catch(err => {
-                console.error('Failed to copy text: ', err);
-                showCustomAlert('فشل النسخ!', 'فشل نسخ الرابط. يرجى المحاولة مرة أخرى.', 'error');
-            });
-        }
-        
-        // Final event listener to ensure background audio starts on the first user interaction
-        document.addEventListener('click', function handler() {
-            playBGAudio();
-            document.removeEventListener('click', handler); // Remove after first successful click
-        });
-
-    </script>
-</body>
-</html>
+                showCustomAlert('تم إرسال الطلب!', `التفاصيل:\nمعرف Binance: ${binanceId}\nالمبلغ: ${amount.toLocaleString()} SHIB\n\
