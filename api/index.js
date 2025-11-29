@@ -26,12 +26,6 @@ const ACTION_ID_EXPIRY_MS = 60000; // 60 seconds for Action ID to be valid
 const SPIN_SECTORS = [5, 10, 15, 20, 5];
 
 // ------------------------------------------------------------------
-// Task Constants (Legacy, now superseded by database)
-// ------------------------------------------------------------------
-// const TASK_REWARD = 50; // ❌ Removed: Now fetched from 'tasks' table
-// const TELEGRAM_CHANNEL_USERNAME = '@botbababab'; // ❌ Removed: Now fetched from 'tasks' table
-
-// ------------------------------------------------------------------
 // NEW Table Names for Dynamic Tasks
 // ------------------------------------------------------------------
 const TASKS_TABLE = 'tasks';
@@ -618,7 +612,7 @@ async function handleWatchAd(req, res, body) {
         }
           
         // 11. Success
-        sendSuccess(res, { new_balance: newBalance, actual_reward: reward, new_ads_count: newAdsCount });
+        sendSuccess(res, { new_balance: newBalance, actual_reward: reward, ads_watched_today: newAdsCount });
 
     } catch (error) {
         console.error('WatchAd failed:', error.message);
@@ -742,7 +736,7 @@ async function handleSpinResult(req, res, body) {
             new_balance: newBalance, 
             actual_prize: prize, 
             prize_index: prizeIndex,
-            new_spins_count: newSpinsCount
+            spins_today: newSpinsCount
         });
 
     } catch (error) {
@@ -759,11 +753,8 @@ async function runTaskCheck(userId, task) {
         case 'channel_join':
             return await checkChannelMembership(userId, task.target_value);
         case 'external_link':
-             // For external links, the verification might be more complex 
-             // (e.g., checking if a separate service logged the click),
-             // but for simplicity here, we assume the frontend confirms the click/action
-             // and the security is primarily on the one-time action_id and rate limit.
-             // You can add more complex checks here if needed.
+             // For external links, the verification is assumed to be primarily handled 
+             // by the one-time action_id and rate limit system to verify the user clicked.
              return true; 
         default:
             console.warn(`Unknown task type: ${task.task_type}`);
@@ -859,7 +850,7 @@ async function handleWithdraw(req, res, body) {
     const { user_id, binanceId, amount, action_id } = body;
     const id = parseInt(user_id);
     const withdrawalAmount = parseFloat(amount);
-    const MIN_WITHDRAW = 400;
+    const MIN_WITHDRAW = 10000; // ⚠️ تم تغييرها لتناسب الحد الأدنى المذكور في index.html
 
     // 1. Check and Consume Action ID (Security Check)
     if (!await validateAndUseActionId(res, id, action_id, 'withdraw')) return;
