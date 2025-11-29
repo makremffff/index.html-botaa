@@ -3,793 +3,825 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SHIB Ads App</title>
+    <title>SHIB Admin Panel</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        /* استيراد خطوط عربية حديثة وخط رقمي للعرض */
-        @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700;900&display=swap');
+        /* Import Fonts */
+        @import url('https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700;800;900&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap');
         
-        /* إعادة تعيين أساسية */
+        /* Global Reset & Base Styles */
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        :root {
-            /* متغيرات التصميم بناءً على ثيم Telegram */
-            --tg-bg: var(--tg-theme-bg-color, #f4f4f4);
-            --tg-text: var(--tg-theme-text-color, #000000);
-            --tg-hint: var(--tg-theme-hint-color, #888888);
-            --tg-link: var(--tg-theme-link-color, #007bff);
-            --tg-btn-bg: var(--tg-theme-button-color, #0088cc);
-            --tg-btn-text: var(--tg-theme-button-text-color, #ffffff);
-            --shib-color: #f0c33a; /* لون الشيبا */
-            --shib-dark: #cc9c1c;
-        }
-
         body {
-            font-family: 'Vazirmatn', Arial, sans-serif;
-            background: var(--tg-bg);
-            color: var(--tg-text);
-            padding: 10px;
+            font-family: 'Vazirmatn', Arial, Helvetica, sans-serif;
+            background: #2a2a2a; /* خلفية داكنة احترافية */
+            color: #e0e0e0;
             display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-            text-align: right;
-            direction: rtl;
-            user-select: none;
-            overflow-x: hidden;
-        }
-
-        /* ----------------------------------------------------- */
-        /* تصميم بطاقات عرض البيانات (3D Style) */
-        /* ----------------------------------------------------- */
-        .stats-grid {
-            width: 100%;
-            max-width: 450px;
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 10px;
-            margin-bottom: 20px;
-        }
-
-        .stat-card {
-            background: var(--tg-bg);
-            border-radius: 18px;
-            padding: 15px;
-            text-align: center;
-            /* تأثير 3D (ظل داخلي وخارجي خفيف مع حافة) */
-            box-shadow: 
-                -5px -5px 10px rgba(255, 255, 255, 0.5), /* ظل علوي/أيسر فاتح */
-                5px 5px 10px rgba(0, 0, 0, 0.15), /* ظل سفلي/أيمن داكن */
-                inset 1px 1px 3px rgba(255, 255, 255, 0.6), /* إضاءة داخلية */
-                inset -1px -1px 3px rgba(0, 0, 0, 0.1); /* ظل داخلي */
-            transition: transform 0.2s ease;
-            border: 1px solid rgba(0, 0, 0, 0.05); /* حافة خفيفة */
-            min-height: 110px;
-            display: flex;
-            flex-direction: column;
             justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 15px;
+            overflow-y: auto;
+            scrollbar-width: none; /* إخفاء شريط التمرير لبعض المتصفحات */
+            -ms-overflow-style: none;
+        }
+        body::-webkit-scrollbar {
+            display: none;
         }
 
-        .stat-card h3 {
-            font-size: 14px;
-            color: var(--tg-hint);
-            font-weight: 700;
+        /* 3D Container Style (Neo-Morphic/Neo-Brutalist) */
+        .admin-screen {
+            width: 100%;
+            max-width: 650px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+            background: #363636;
+            padding: 30px;
+            border-radius: 25px;
+            border: 2px solid #5a5a5a;
+            box-shadow: 
+                10px 10px 20px rgba(0, 0, 0, 0.6), /* ظل خارجي داكن لعمق 3D */
+                -5px -5px 10px rgba(70, 70, 70, 0.4), /* إضاءة علوية */
+                inset 2px 2px 5px rgba(0, 0, 0, 0.3); /* ظل داخلي خفيف */
+            margin-top: 15px;
+        }
+
+        /* Header Styles */
+        .admin-header {
+            text-align: center;
+        }
+
+        .admin-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 30px;
+            color: #00ff99; /* لون نيون مميز */
+            font-weight: 800;
+            text-shadow: 0 0 5px #00ff99, 0 0 10px #00aaff;
+            letter-spacing: 1px;
             margin-bottom: 5px;
         }
 
-        .stat-card p {
-            font-family: 'Orbitron', sans-serif;
-            font-size: 24px;
-            font-weight: 900;
-            color: var(--shib-color);
-            text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+        .admin-subtitle {
+            font-size: 15px;
+            color: #a0a0a0;
         }
         
-        .stat-card.balance p {
-             font-size: 28px;
+        /* Navigation/Tabs Styles (Buttons) */
+        .admin-nav {
+            display: flex;
+            justify-content: space-around;
+            gap: 15px;
+            padding: 5px;
+            border-radius: 15px;
+            background: #2c2c2c;
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5);
         }
 
-        /* ----------------------------------------------------- */
-        /* قسم الإجراءات (Actions Section) */
-        /* ----------------------------------------------------- */
-        .actions-container {
+        .nav-btn {
+            flex-grow: 1;
+            padding: 12px 10px;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            background: #444444;
+            color: #d0d0d0;
+            transition: all .2s cubic-bezier(.175, .885, .32, 1.275);
+            box-shadow: 3px 3px 8px rgba(0, 0, 0, 0.6), -3px -3px 8px rgba(70, 70, 70, 0.4); /* 3D effect */
+        }
+
+        .nav-btn:hover {
+            transform: scale(1.02);
+        }
+
+        .nav-btn.active {
+            background: #00ff99; /* لون نشط */
+            color: #1a1a1a;
+            transform: translateY(-2px) scale(1.03);
+            box-shadow: 
+                5px 5px 15px rgba(0, 255, 153, 0.4), 
+                -5px -5px 10px rgba(0, 255, 153, 0.2);
+            border: 1px solid #1a1a1a;
+        }
+        
+        /* Content Sections */
+        .content-section {
+            background: #2f2f2f;
+            padding: 20px;
+            border-radius: 18px;
+            border: 1px solid #4a4a4a;
+            box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.4);
+            display: none;
+        }
+        
+        .content-section.active {
+            display: block;
+        }
+        
+        .history-title {
+            font-size: 22px;
+            color: #00aaff;
+            margin-bottom: 15px;
+            font-weight: 800;
+            text-align: center;
+            border-bottom: 2px solid #444;
+            padding-bottom: 10px;
+        }
+
+        /* List Items (Withdrawals) */
+        .admin-list-item {
+            display: flex;
+            flex-direction: column; /* تحسين الاستجابة */
+            gap: 10px;
+            justify-content: space-between;
+            align-items: flex-start;
+            padding: 15px 0;
+            border-bottom: 1px dashed #444;
+        }
+
+        .admin-list-item:last-child {
+            border-bottom: none;
+        }
+
+        .user-info-admin {
             width: 100%;
-            max-width: 450px;
+            text-align: right; /* محاذاة لليمين */
+        }
+
+        .user-info-admin h4 {
+            margin: 0;
+            font-size: 17px;
+            color: #00ff99;
+            font-weight: 700;
+        }
+
+        .user-info-admin p {
+            margin: 5px 0 0;
+            font-size: 13px;
+            color: #b0b0b0;
+            line-height: 1.5;
+            word-break: break-all;
+        }
+
+        .admin-actions {
+            width: 100%;
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end; /* وضع الأزرار لليمين */
+        }
+
+        /* Action Buttons */
+        .action-btn {
+            flex-grow: 1;
+            max-width: 100px; /* تحديد عرض الأزرار */
+            padding: 10px 8px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all .1s ease;
+            border: none;
+            box-shadow: 3px 3px 5px rgba(0, 0, 0, 0.5);
+        }
+
+        .action-btn:active {
+            transform: translateY(2px);
+            box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5); /* تأثير الضغط 3D */
+        }
+
+        .accept-btn {
+            background: #28a745;
+            color: #fff;
+        }
+
+        .reject-btn {
+            background: #dc3545;
+            color: #fff;
+        }
+
+        .ban-btn {
+            background: #ffc107;
+            color: #333;
+        }
+        
+        /* Search and User Management Styles */
+        .search-section {
             display: flex;
             flex-direction: column;
             gap: 15px;
-            margin-bottom: 25px;
+            align-items: center;
         }
-        
-        /* زر الإعلان */
-        .watch-ad-btn {
-            background: linear-gradient(145deg, #17d457, #13b349); /* تدرج أخضر جذاب */
-            color: white;
-            font-weight: 800;
-            font-size: 18px;
-            padding: 15px 20px;
-        }
-        
-        /* زر السبين والسحب */
-        .spin-withdraw-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
+
+        .search-input-group {
+            width: 100%;
+            display: flex;
             gap: 10px;
         }
-        
-        .spin-btn {
-            background: linear-gradient(145deg, #ffc107, #e0a800); /* تدرج أصفر للسبين */
-            color: #333;
-            font-weight: 800;
-            font-size: 16px;
-        }
-        
-        .withdraw-btn {
-            background: linear-gradient(145deg, #00bcd4, #0097a7); /* تدرج أزرق للسحب */
-            color: white;
-            font-weight: 800;
-            font-size: 16px;
-        }
-        
-        .task-btn {
-            background: linear-gradient(145deg, #9932cc, #800080); /* تدرج بنفسجي للمهمة */
-            color: white;
-            font-weight: 800;
-            font-size: 18px;
-            padding: 15px 20px;
-        }
 
-        /* ----------------------------------------------------- */
-        /* التنسيق العام للأزرار (Button 3D Style) */
-        /* ----------------------------------------------------- */
-        .app-btn {
-            border: none;
-            border-radius: 12px;
-            cursor: pointer;
-            text-align: center;
-            transition: all 0.15s ease;
-            box-shadow: 
-                0 6px 0 var(--shib-dark), /* الظل السفلي الذي يعطي تأثير 3D */
-                0 0 10px rgba(0, 0, 0, 0.1);
-        }
-        
-        /* عند التحويم/النقر: تأثير الضغط */
-        .app-btn:active {
-            transform: translateY(3px);
-            box-shadow: 
-                0 3px 0 var(--shib-dark),
-                0 0 5px rgba(0, 0, 0, 0.1);
-        }
-        
-        .watch-ad-btn.app-btn {
-            box-shadow: 0 6px 0 #0f7935; /* ظل أخضر أغمق للإعلان */
-        }
-        .watch-ad-btn.app-btn:active {
-            box-shadow: 0 3px 0 #0f7935;
-        }
-
-        .spin-btn.app-btn {
-            box-shadow: 0 6px 0 #a98500; /* ظل أصفر أغمق للسبين */
-            color: #333;
-        }
-        .spin-btn.app-btn:active {
-            box-shadow: 0 3px 0 #a98500;
-        }
-        
-        .withdraw-btn.app-btn {
-            box-shadow: 0 6px 0 #005a63; /* ظل أزرق أغمق للسحب */
-        }
-        .withdraw-btn.app-btn:active {
-            box-shadow: 0 3px 0 #005a63;
-        }
-        
-        .task-btn.app-btn {
-            box-shadow: 0 6px 0 #5b0f5b; /* ظل بنفسجي أغمق للمهمة */
-        }
-        .task-btn.app-btn:active {
-            box-shadow: 0 3px 0 #5b0f5b;
-        }
-
-        /* حالة الإيقاف/الانتهاء */
-        .app-btn:disabled, .app-btn.disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none !important;
-            box-shadow: none !important;
-        }
-
-        /* ----------------------------------------------------- */
-        /* تنسيق الأجزاء الأخرى */
-        /* ----------------------------------------------------- */
-        .header {
-            width: 100%;
-            max-width: 450px;
-            text-align: center;
-            margin-bottom: 20px;
-            padding: 10px 0;
-            font-weight: 900;
-        }
-        
-        .header h1 {
-             font-size: 26px;
-             color: var(--shib-color);
-             text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.3);
-        }
-        
-        .footer-note {
-             font-size: 12px;
-             color: var(--tg-hint);
-             margin-top: 15px;
-             max-width: 450px;
-             text-align: center;
-        }
-        
-        /* تنسيق رسائل النظام */
-        .alert {
-            background: #333;
-            color: white;
-            padding: 10px;
-            border-radius: 8px;
-            margin-top: 15px;
-            width: 100%;
-            max-width: 450px;
-            text-align: center;
-            font-weight: 700;
-            display: none; /* يتم إظهاره بالـ JS */
-        }
-        
-        /* Modal - نافذة السحب */
-        .modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            display: none;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        }
-
-        .modal-content {
-            background: var(--tg-bg);
-            padding: 25px;
-            border-radius: 15px;
-            width: 90%;
-            max-width: 350px;
-            text-align: center;
-            box-shadow: 0 5px 25px rgba(0, 0, 0, 0.5);
-            animation: fadeIn 0.3s ease-out;
-        }
-        
-        .modal-content h2 {
-            color: var(--tg-text);
-            margin-bottom: 20px;
-            font-weight: 900;
-        }
-        
-        .modal-content input {
-            width: 100%;
+        #searchUserId, #newBalance {
+            flex-grow: 1;
             padding: 12px;
-            margin-bottom: 15px;
-            border: 2px solid var(--tg-hint);
-            border-radius: 8px;
-            background: var(--tg-bg);
-            color: var(--tg-text);
-            text-align: right;
-            font-family: 'Vazirmatn', sans-serif;
+            border: 2px solid #00ff99;
+            border-radius: 10px;
             font-size: 16px;
-            font-weight: 700;
-            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+            background: #444;
+            color: #fff;
+            box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5);
+            text-align: right;
+            outline: none;
         }
-        
-        .modal-content button {
-            width: 100%;
-        }
-        
-        .modal-close {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            font-size: 24px;
-            font-weight: 700;
+
+        .search-btn {
+            background: #00aaff;
+            color: #fff;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 800;
             cursor: pointer;
-            color: var(--tg-hint);
+            transition: all .1s ease;
+            box-shadow: 4px 4px 0 #007bbd; /* 3D Flat-style Shadow */
         }
         
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
+        .search-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #007bbd;
         }
-        
-        /* شاشة التحميل (Loader) */
-        .loader-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
+
+        /* User Result Card (NEW) */
+        #userResult {
             width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            margin-top: 5px;
+            border: 1px solid #00ff99;
+            border-radius: 15px;
+            background: #3b3b3b;
+            text-align: right;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+            display: none;
+        }
+
+        #userResult h4 {
+            font-size: 18px;
+            color: #00ff99;
+            border-bottom: 1px solid #4a4a4a;
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+        }
+
+        #userResult p {
+            margin: 8px 0;
+            font-size: 15px;
+            color: #e0e0e0;
             display: flex;
-            justify-content: center;
+            justify-content: space-between;
             align-items: center;
-            z-index: 2000;
         }
-        .loader {
-            border: 4px solid var(--tg-hint);
-            border-top: 4px solid var(--shib-color);
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
+
+        #userResult span {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            color: #fff;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        
+        /* Edit Balance Group */
+        .edit-balance-group {
+            display: flex;
+            flex-wrap: wrap; /* للسماح للكسر على شاشات صغيرة */
+            gap: 10px;
+            align-items: center;
+            width: 100%;
+            margin-top: 15px;
+            border-top: 1px solid #4a4a4a;
+            padding-top: 15px;
+        }
+
+        #newBalance {
+            flex-grow: 1;
+            min-width: 150px;
+            text-align: left;
+        }
+
+        .update-btn {
+            background: #ff8c00;
+            color: #fff;
+            padding: 12px 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 800;
+            cursor: pointer;
+            transition: all .1s ease;
+            box-shadow: 4px 4px 0 #cc7000;
+        }
+
+        .update-btn:active {
+            transform: translate(2px, 2px);
+            box-shadow: 2px 2px 0 #cc7000;
+        }
+
+        /* Responsive Fix for Buttons in Edit Group */
+        .edit-balance-group .action-btn {
+            max-width: none;
+            flex-grow: 1;
+        }
+        
+        .no-records {
+            text-align: center;
+            color: #999;
+            padding: 20px;
+            font-size: 16px;
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 450px) {
+            .admin-screen {
+                padding: 15px;
+            }
+            .admin-title {
+                font-size: 24px;
+            }
+            .admin-nav {
+                flex-direction: column;
+                gap: 8px;
+            }
+            .search-input-group {
+                flex-direction: column;
+            }
+            .search-btn, .update-btn {
+                width: 100%;
+                margin-top: 5px;
+            }
+            .edit-balance-group {
+                flex-direction: column;
+            }
+            #newBalance, .edit-balance-group .action-btn {
+                width: 100%;
+            }
+            .admin-actions {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            .action-btn {
+                flex-grow: 1;
+                max-width: 48%; /* زرّين في السطر */
+            }
+        }
+
+        /* Custom Alert - Theme Update */
+        .custom-alert-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, .8);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 99999;
+            opacity: 0;
+            transition: opacity .3s ease;
+        }
+
+        .custom-alert-overlay.visible {
+            display: flex;
+            opacity: 1;
+        }
+
+        .custom-alert-box {
+            width: 90%;
+            max-width: 300px;
+            background: #2a2a2a;
+            border-radius: 15px;
+            padding: 25px 20px;
+            text-align: center;
+            box-shadow: 0 0 20px rgba(0, 255, 153, 0.3), 0 8px 15px rgba(0, 0, 0, .5);
+            border: 2px solid #00ff99;
+            transform: scale(.8);
+            transition: transform .3s cubic-bezier(.175, .885, .32, 1.275);
+        }
+
+        .custom-alert-overlay.visible .custom-alert-box {
+            transform: scale(1);
+        }
+
+        .alert-title {
+            font-family: 'Vazirmatn', sans-serif;
+            font-size: 22px;
+            font-weight: 800;
+            color: #00ff99;
+            margin-bottom: 8px;
+            text-shadow: 0 0 5px #00ff99;
+        }
+
+        .alert-message {
+            font-family: 'Vazirmatn', sans-serif;
+            font-size: 14px;
+            color: #e0e0e0;
+            margin-bottom: 20px;
+            white-space: pre-wrap;
+        }
+
+        .alert-icon {
+            font-size: 30px;
+            margin-bottom: 15px;
+        }
+
+        .alert-close-btn {
+            background: #00aaff;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 800;
+            cursor: pointer;
+            box-shadow: 0 4px 0 #007bbd;
+            transition: all .1s ease;
+        }
+
+        .alert-close-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #007bbd;
+        }
+
+        .custom-alert-box.success .alert-title {
+            color: #28a745;
+        }
+
+        .custom-alert-box.success .alert-icon::before {
+            content: '✅';
+        }
+
+        .custom-alert-box.error .alert-title {
+            color: #dc3545;
+        }
+
+        .custom-alert-box.error .alert-icon::before {
+            content: '❌';
+        }
+
+        .custom-alert-box.warning .alert-title {
+            color: #ffc107;
+        }
+
+        .custom-alert-box.warning .alert-icon::before {
+            content: '⚠️';
         }
     </style>
 </head>
 <body>
-    
-    <div id="loader" class="loader-overlay">
-        <div class="loader"></div>
-    </div>
-    
-    <div id="mainApp" style="display: none; width: 100%; align-items: center; flex-direction: column;">
-        
-        <div class="header">
-            <h1>SHIBA INU EARNING</h1>
-            <p id="userNameDisplay" style="font-size: 14px; font-weight: 700; color: var(--tg-hint);"></p>
-        </div>
 
-        <div class="stats-grid">
-            <div class="stat-card balance" style="grid-column: 1 / 3;">
-                <h3>💰 الرصيد الحالي (SHIB)</h3>
-                <p id="userBalance">0</p>
-            </div>
-            <div class="stat-card">
-                <h3>📺 إعلانات اليوم</h3>
-                <p id="adsWatched">0 / 100</p>
-            </div>
-            <div class="stat-card">
-                <h3>🎡 سبين اليوم</h3>
-                <p id="spinsToday">0 / 15</p>
+    <div class="admin-screen" id="adminScreen">
+        <div class="admin-header">
+            <h2 class="admin-title">👑 لوحة تحكم المسؤول</h2>
+            <div class="admin-subtitle">إدارة التطبيق والأعضاء</div>
+        </div>
+        
+        <div class="admin-nav">
+            <button class="nav-btn active" data-target="withdrawals-section" onclick="showSection('withdrawals-section', this)">💳 السحوبات المعلقة</button>
+            <button class="nav-btn" data-target="user-management-section" onclick="showSection('user-management-section', this)">👤 إدارة المستخدم</button>
+        </div>
+        
+        <div class="content-section" id="withdrawals-section">
+            <h3 class="history-title">💳 طلبات السحب المعلقة</h3>
+            <div id="pendingWithdrawalsList">
+                <div class="no-records">جاري تحميل طلبات السحب...</div>
             </div>
         </div>
 
-        <div class="actions-container">
-            
-            <button class="app-btn watch-ad-btn" id="watchAdBtn" onclick="handleWatchAdClick()">
-                📺 مشاهدة إعلان (+3 SHIB)
-            </button>
-            
-            <div class="spin-withdraw-grid">
-                <button class="app-btn spin-btn" id="spinBtn" onclick="handleSpinClick()">
-                    🎡 سبين الحظ
-                </button>
-                <button class="app-btn withdraw-btn" id="withdrawBtn" onclick="openWithdrawModal()">
-                    💸 سحب الرصيد
-                </button>
+        <div class="content-section" id="user-management-section">
+            <h3 class="history-title">🔍 البحث وتعديل نقاط المستخدم</h3>
+            <div class="search-section">
+                <div class="search-input-group">
+                    <input type="text" id="searchUserId" placeholder="أدخل معرّف المستخدم (User ID)">
+                    <button class="search-btn" onclick="searchUser()">بحث</button>
+                </div>
+                
+                <div id="userResult" style="display: none;">
+                    <h4>بيانات المستخدم: <span id="resUserName">N/A</span> (<span id="resUserId">N/A</span>)</h4>
+                    
+                    <p>الرصيد الحالي: <span id="resUserBalance">0 SHIB</span></p>
+                    <p>الإعلانات المشاهدة اليوم: <span id="resUserAds">0</span></p>
+                    <p>عدد السبين اليومي: <span id="resUserSpins">0</span></p>
+                    <p>حالة الحظر: <span id="resUserStatus">غير محظور ✅</span></p>
+
+                    <div class="edit-balance-group">
+                        <input type="number" id="newBalance" placeholder="الرصيد الجديد SHIB">
+                        <button class="update-btn" onclick="updateUserBalance()">تعديل الرصيد</button>
+                        <button class="action-btn reject-btn" id="resBanBtn" onclick="toggleBanUser()">حظر/إلغاء الحظر</button>
+                    </div>
+                </div>
             </div>
-            
-            <button class="app-btn task-btn" id="completeTaskBtn" onclick="handleCompleteTaskClick()">
-                🎁 إكمال مهمة (+50 SHIB)
-            </button>
         </div>
         
-        <p class="footer-note">
-            يتم تحديث الحدود اليومية كل 6 ساعات من لحظة الوصول للحد الأقصى.
-        </p>
     </div>
-    
-    <div id="withdrawModal" class="modal" onclick="if(event.target.id === 'withdrawModal') closeWithdrawModal()">
-        <div class="modal-content">
-            <span class="modal-close" onclick="closeWithdrawModal()">&times;</span>
-            <h2>💸 طلب سحب</h2>
-            <p style="font-size: 14px; margin-bottom: 10px; color: var(--tg-link); font-weight: 700;">الحد الأدنى للسحب: 400 SHIB</p>
-            <input type="number" id="withdrawAmount" placeholder="أدخل مبلغ السحب (SHIB)" value="400">
-            <input type="text" id="binanceId" placeholder="أدخل معرّف Binance Pay ID/UID">
-            <button class="app-btn withdraw-btn" style="width: 100%;" onclick="handleWithdraw()">
-                تأكيد طلب السحب
-            </button>
+
+    <div id="customAlert" class="custom-alert-overlay">
+        <div class="custom-alert-box">
+            <div class="alert-icon" id="alertIcon"></div>
+            <div class="alert-title" id="alertTitle"></div>
+            <div class="alert-message" id="alertMessage"></div>
+            <button class="alert-close-btn" onclick="document.getElementById('customAlert').classList.remove('visible')">حسناً</button>
         </div>
     </div>
-    
+
     <script>
-        const tg = window.Telegram.WebApp;
-        tg.ready();
-        
-        // استخدام خاصية التكبير والإغلاق المدمجة في تيليجرام
-        tg.expand();
-        tg.MainButton.hide();
+        // إعدادات أساسية لعمل لوحة التحكم
+        const API_URL = '/api';
+        const customAlert = document.getElementById('customAlert');
+        const alertBox = customAlert.querySelector('.custom-alert-box');
+        const alertTitleEl = document.getElementById('alertTitle');
+        const alertMessageEl = document.getElementById('alertMessage');
+        const adminUserId = '7741750541'; // هذا هو معرّف المسؤول الوحيد المسموح له بالوصول
 
-        const API_URL = '/api'; // المسار إلى ملف index.js في Vercel
-        const ADMIN_USER_ID = '7741750541'; // ⚠️ تأكد من أن هذا يطابق ID المسؤول في index.js
-        
-        let userData = {
-            balance: 0,
-            ads_watched_today: 0,
-            spins_today: 0,
-            is_banned: false,
-            task_completed: false
-        };
-        
-        let lastActionTime = 0; // لحساب معدل استدعاء الطلبات (Rate Limit)
-        const RATE_LIMIT_MS = 3000; // 3 ثواني كحد أدنى بين الإجراءات
+        let tgUser = null;
+        let searchedUser = null; // لتخزين بيانات المستخدم الذي تم البحث عنه
 
-        const adminUserId = ADMIN_USER_ID;
-
-        // ----------------- Helper Functions -----------------
-        
-        function showLoader(show) {
-            document.getElementById('loader').style.display = show ? 'flex' : 'none';
-        }
-        
-        function showCustomAlert(title, message, type) {
-            // استخدام ميزة WebApp.showAlert لرسائل النظام
-            tg.showAlert(message);
+        // 1. وظيفة عرض التنبيهات (Custom Alert)
+        function showCustomAlert(title, message, type = "warning") {
+            const cleanMessage = message.replace(/(\r\n|\n|\r)/gm, "\n");
+            alertTitleEl.textContent = title;
+            alertMessageEl.textContent = cleanMessage;
+            alertBox.classList.remove("success", "error", "warning");
+            alertBox.classList.add(type);
+            customAlert.classList.add('visible');
         }
 
-        async function fetchApi(body) {
-            showLoader(true);
+        // 2. معالجة بيانات الإطلاق من Telegram Mini App
+        Telegram.WebApp.ready();
+        if (Telegram.WebApp.initDataUnsafe && Telegram.WebApp.initDataUnsafe.user) {
+            tgUser = Telegram.WebApp.initDataUnsafe.user;
+        }
+
+        // 3. دالة جلب بيانات API (معدلة لـ Admin)
+        async function fetchApi(data) {
+            // تحقق من صلاحية المسؤولية قبل أي طلب
+            if (!tgUser || tgUser.id.toString() !== adminUserId) {
+                showCustomAlert('خطأ في الوصول', 'أنت لست مسؤولاً مخولاً. [CODE: NOT_ADMIN]', 'error');
+                return { ok: false, error: 'Not Admin' };
+            }
+            const initData = Telegram.WebApp.initData;
+            if (!initData) {
+                showCustomAlert('خطأ حرج!', 'بيانات الإطلاق مفقودة. يرجى إعادة تشغيل التطبيق. [CODE: ID_MS]', 'error');
+                return { ok: false, error: 'InitData missing' };
+            }
+            
+            if (typeof Telegram.WebApp.showProgress === 'function') Telegram.WebApp.showProgress();
+
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        ...body, 
-                        initData: tg.initData,
-                        user_id: tg.initDataUnsafe.user.id.toString() 
-                    }),
+                    body: JSON.stringify({ ...data, user_id: tgUser.id, initData: initData })
                 });
 
-                const data = await response.json();
-                showLoader(false);
-                
-                if (!response.ok || !data.ok) {
-                    const errorMessage = data.error || data.message || `API Error: ${response.statusText}`;
-                    showCustomAlert('خطأ', errorMessage, 'error');
-                    
-                    // إذا كان الخطأ بسبب الحظر، قم بتحديث الواجهة
-                    if (data.is_banned) {
-                        userData.is_banned = true;
-                        updateUI();
-                    }
-                    return null;
-                }
-                
-                return data.data;
+                if (typeof Telegram.WebApp.hideProgress === 'function') Telegram.WebApp.hideProgress();
 
-            } catch (error) {
-                console.error('Fetch API Error:', error);
-                showLoader(false);
-                showCustomAlert('خطأ في الاتصال', 'تعذر الاتصال بالخادم. يرجى المحاولة لاحقاً.', 'error');
-                return null;
+                const result = await response.json();
+
+                if (!response.ok || !result.ok) {
+                    const errorMsg = result.error || `خطأ في الخادم: ${response.status} ${response.statusText}`;
+                    showCustomAlert('فشلت العملية!', errorMsg, 'error');
+                    return { ok: false, error: errorMsg };
+                }
+
+                return result;
+
+            } catch (e) {
+                if (typeof Telegram.WebApp.hideProgress === 'function') Telegram.WebApp.hideProgress();
+                console.error(`General Fetch Error for type ${data.type}:`, e.message);
+                showCustomAlert('خطأ في الاتصال!', 'تعذر الاتصال بالخادم. يرجى التحقق من اتصالك بالإنترنت.', 'error');
+                return { ok: false, error: e.message };
             }
         }
+
+        // 4. دالة جلب معرّف العملية (Action ID)
+        async function requestActionId(actionType) {
+            const result = await fetchApi({ type: 'generateActionId', action_type: actionType });
+            return result.ok ? result.data.action_id : null;
+        }
         
-        /**
-         * طلب Action ID من الخادم قبل الإجراءات الحرجة
-         */
-        async function requestActionId(action_type) {
-             const result = await fetchApi({
-                type: 'generateActionId',
-                action_type: action_type
-            });
-            return result ? result.action_id : null;
+        // 5. تحميل بيانات لوحة التحكم (السحوبات المعلقة)
+        async function loadAdminData() {
+            if (!tgUser || tgUser.id.toString() !== adminUserId) {
+                document.getElementById('pendingWithdrawalsList').innerHTML = '<div class="no-records">لا توجد صلاحية للوصول إلى لوحة التحكم.</div>';
+                return;
+            }
+
+            const result = await fetchApi({ type: 'getPendingWithdrawals' });
+            if (result.ok) {
+                displayPendingWithdrawals(result.data.pending_withdrawals);
+            } else {
+                displayPendingWithdrawals([]);
+            }
         }
 
-        // ----------------- UI Updates -----------------
-        
-        function updateUI() {
-            if (userData.is_banned) {
-                document.getElementById('mainApp').innerHTML = `
-                    <div class="header" style="margin-top: 50px;">
-                        <h1>🚫 تم حظرك!</h1>
-                        <p style="color: #dc3545; font-size: 18px; font-weight: 700;">لقد تم حظرك من استخدام التطبيق.</p>
+        // 6. عرض طلبات السحب المعلقة
+        function displayPendingWithdrawals(requests) {
+            const listEl = document.getElementById('pendingWithdrawalsList');
+            if (!requests || requests.length === 0) {
+                listEl.innerHTML = '<div class="no-records">لا توجد طلبات سحب معلقة حالياً.</div>';
+                return;
+            }
+
+            let html = '';
+            requests.forEach(req => {
+                const dateOptions = { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' };
+                const formattedDate = new Date(req.created_at).toLocaleDateString('ar-EG', dateOptions).replace(',', ' -');
+                html += `
+                    <div class="admin-list-item" data-request-id="${req.id}">
+                        <div class="user-info-admin">
+                            <h4>معرّف المستخدم (ID): <span style="color: #ffc107;">${req.user_id}</span></h4>
+                            <p><span>المبلغ:</span> <span style="color: #dc3545;">${req.amount.toLocaleString()} SHIB</span></p>
+                            <p><span>معرّف Binance:</span> <span>${req.binance_id}</span></p>
+                            <p><span>تاريخ الطلب:</span> <span>${formattedDate}</span></p>
+                        </div>
+                        <div class="admin-actions">
+                            <button class="action-btn accept-btn" onclick="handleAdminAction('${req.id}','accept', '${req.user_id}')">قبول</button>
+                            <button class="action-btn reject-btn" onclick="handleAdminAction('${req.id}','reject', '${req.user_id}')">رفض</button>
+                            <button class="action-btn ban-btn" onclick="handleAdminAction('${req.id}','ban','${req.user_id}')">حظر</button>
+                        </div>
                     </div>
                 `;
-                return;
-            }
-
-            // تحديث بيانات المستخدم
-            document.getElementById('userBalance').textContent = Math.floor(userData.balance).toLocaleString('en-US');
-            document.getElementById('adsWatched').textContent = `${userData.ads_watched_today.toLocaleString('en-US')} / 100`;
-            document.getElementById('spinsToday').textContent = `${userData.spins_today.toLocaleString('en-US')} / 15`;
-            
-            // تحديث حالة الأزرار
-            const watchAdBtn = document.getElementById('watchAdBtn');
-            const spinBtn = document.getElementById('spinBtn');
-            const withdrawBtn = document.getElementById('withdrawBtn');
-            const taskBtn = document.getElementById('completeTaskBtn');
-            
-            // 1. زر الإعلان
-            if (userData.ads_watched_today >= 100) {
-                watchAdBtn.textContent = '⏱️ الحد اليومي للإعلانات وصل (راجع الملاحظة)';
-                watchAdBtn.disabled = true;
-            } else {
-                 watchAdBtn.textContent = '📺 مشاهدة إعلان (+3 SHIB)';
-                 watchAdBtn.disabled = false;
-            }
-            
-            // 2. زر السبين
-            if (userData.spins_today >= 15) {
-                spinBtn.textContent = '⏱️ الحد اليومي للسبين وصل';
-                spinBtn.disabled = true;
-            } else {
-                spinBtn.textContent = '🎡 سبين الحظ';
-                spinBtn.disabled = false;
-            }
-            
-            // 3. زر السحب (الحد الأدنى 400)
-            withdrawBtn.disabled = userData.balance < 400;
-            
-            // 4. زر المهمة
-            if (userData.task_completed) {
-                taskBtn.textContent = '✅ تم إكمال المهمة';
-                taskBtn.disabled = true;
-                taskBtn.style.opacity = 0.8;
-                taskBtn.style.pointerEvents = 'none';
-            } else {
-                taskBtn.textContent = '🎁 إكمال مهمة (+50 SHIB)';
-                taskBtn.disabled = false;
-                taskBtn.style.opacity = 1;
-                taskBtn.style.pointerEvents = 'auto';
-            }
-            
-            // رابط لوحة المسؤول
-            if (tg.initDataUnsafe.user.id.toString() === adminUserId) {
-                 if (!document.getElementById('adminLink')) {
-                    const adminLink = document.createElement('a');
-                    adminLink.id = 'adminLink';
-                    adminLink.href = 'admin.html'; // ⚠️ يجب تسمية ملف المسؤول admin.html
-                    adminLink.textContent = '👑 لوحة المسؤول';
-                    adminLink.style.cssText = 'display:block; margin-top: 15px; font-weight: 700; color: var(--tg-link);';
-                    document.getElementById('mainApp').appendChild(adminLink);
-                 }
-            }
-        }
-
-        // ----------------- Core Functions -----------------
-        
-        async function loadUserData(ref_by = null) {
-            const user = tg.initDataUnsafe.user;
-            document.getElementById('userNameDisplay').textContent = `@${user.username || user.first_name}`;
-            
-            const registerData = await fetchApi({ 
-                type: 'register', 
-                ref_by: ref_by,
-                username: user.username,
-                first_name: user.first_name
             });
-            
-            if (!registerData) {
-                showLoader(false);
-                return;
-            }
 
-            const data = await fetchApi({ type: 'getUserData' });
-            
-            if (data) {
-                userData = {
-                    balance: data.balance || 0,
-                    ads_watched_today: data.ads_watched_today || 0,
-                    spins_today: data.spins_today || 0,
-                    is_banned: data.is_banned || false,
-                    task_completed: data.task_completed || false
-                };
-            }
-            
-            // إخفاء اللودر وإظهار الواجهة
-            document.getElementById('mainApp').style.display = 'flex';
-            showLoader(false);
-            updateUI();
-        }
-        
-        
-        // ----------------- Action Handlers -----------------
-
-        /**
-         * معالج النقر على زر مشاهدة الإعلان
-         */
-        async function handleWatchAdClick() {
-            const now = Date.now();
-            if (now - lastActionTime < RATE_LIMIT_MS) {
-                showCustomAlert('مهلاً!', 'يجب الانتظار 3 ثوانٍ بين الإجراءات.', 'warning');
-                return;
-            }
-            lastActionTime = now;
-            
-            // 1. الحصول على Action ID
-            const actionId = await requestActionId('watchAd');
-            if (!actionId) return;
-
-            // 2. محاكاة انتظار الإعلان (يمكنك استبدال هذا بمنطق عرض الإعلان الفعلي)
-            showLoader(true);
-            await new Promise(resolve => setTimeout(resolve, 2500)); // انتظار 2.5 ثانية
-            showLoader(false);
-
-            // 3. إرسال الطلب للخلفية
-            const result = await fetchApi({ 
-                type: 'watchAd', 
-                action_id: actionId 
-            });
-            
-            if (result) {
-                userData.balance = result.new_balance;
-                userData.ads_watched_today = result.new_ads_count;
-                showCustomAlert('نجاح!', `تمت إضافة ${result.actual_reward} SHIB إلى رصيدك.`, 'success');
-                updateUI();
-            }
-        }
-        
-        /**
-         * معالج النقر على زر سبين الحظ
-         */
-        async function handleSpinClick() {
-             const now = Date.now();
-            if (now - lastActionTime < RATE_LIMIT_MS) {
-                showCustomAlert('مهلاً!', 'يجب الانتظار 3 ثوانٍ بين الإجراءات.', 'warning');
-                return;
-            }
-            lastActionTime = now;
-            
-            // 1. الحصول على Action ID لـ preSpin
-            const preSpinActionId = await requestActionId('preSpin');
-            if (!preSpinActionId) return;
-            
-            // 2. إرسال طلب preSpin (للتأكد من عدم وجود حظر أو مشاكل)
-            const preSpinResult = await fetchApi({ 
-                type: 'preSpin', 
-                action_id: preSpinActionId 
-            });
-            
-            if (!preSpinResult) return;
-            
-            // 3. الحصول على Action ID لـ spinResult
-            const spinResultActionId = await requestActionId('spinResult');
-            if (!spinResultActionId) return;
-
-            // 4. محاكاة حركة السبين (3 ثواني)
-            showLoader(true);
-            await new Promise(resolve => setTimeout(resolve, 3000)); 
-            
-            // 5. إرسال الطلب للحصول على النتيجة
-            const result = await fetchApi({ 
-                type: 'spinResult', 
-                action_id: spinResultActionId 
-            });
-            
-            if (result) {
-                userData.balance = result.new_balance;
-                userData.spins_today = result.new_spins_count;
-                showCustomAlert('فوز!', `تهانينا! فزت بـ ${result.actual_prize} SHIB.`, 'success');
-                updateUI();
-            }
-        }
-        
-        /**
-         * فتح نافذة السحب
-         */
-        function openWithdrawModal() {
-            if (userData.balance < 400) {
-                 showCustomAlert('خطأ', 'الحد الأدنى للسحب هو 400 SHIB.', 'error');
-                 return;
-            }
-            document.getElementById('withdrawAmount').value = Math.floor(userData.balance);
-            document.getElementById('withdrawModal').style.display = 'flex';
+            listEl.innerHTML = html;
         }
 
-        /**
-         * إغلاق نافذة السحب
-         */
-        function closeWithdrawModal() {
-            document.getElementById('withdrawModal').style.display = 'none';
-        }
-        
-        /**
-         * معالج طلب السحب
-         */
-        async function handleWithdraw() {
-            const amount = document.getElementById('withdrawAmount').value;
-            const binanceId = document.getElementById('binanceId').value;
-            const withdrawalAmount = parseFloat(amount);
-            
-            if (isNaN(withdrawalAmount) || withdrawalAmount < 400) {
-                showCustomAlert('خطأ', 'مبلغ السحب غير صالح. الحد الأدنى 400 SHIB.', 'error');
-                return;
-            }
-            if (!binanceId.trim()) {
-                showCustomAlert('خطأ', 'يرجى إدخال معرّف Binance Pay ID أو UID.', 'error');
-                return;
-            }
-            
-            if (withdrawalAmount > userData.balance) {
-                showCustomAlert('خطأ', 'رصيدك غير كافٍ.', 'error');
-                return;
-            }
-            
-            closeWithdrawModal();
-            
-            const actionId = await requestActionId('withdraw');
+        // 7. معالجة إجراءات المسؤول (قبول/رفض/حظر)
+        async function handleAdminAction(requestId, action, userIdToBan = null) {
+            const actionId = await requestActionId('adminAction');
             if (!actionId) return;
 
             const result = await fetchApi({
-                type: 'withdraw',
-                amount: withdrawalAmount,
-                binanceId: binanceId,
+                type: 'adminAction',
+                request_id: action !== 'ban' ? requestId : undefined, // إرسال request_id فقط إذا لم يكن الإجراء حظر
+                action: action,
+                user_to_ban: action === 'ban' ? userIdToBan : undefined, // إرسال user_to_ban فقط إذا كان الإجراء حظر
                 action_id: actionId
             });
 
-            if (result) {
-                userData.balance = result.new_balance;
-                showCustomAlert('نجاح!', 'تم إرسال طلب السحب بنجاح. سيتم مراجعته.', 'success');
-                updateUI();
+            if (result.ok) {
+                // إعادة تحميل بيانات السحوبات عند القبول/الرفض/الحظر
+                loadAdminData();
+                showCustomAlert('نجاح!', result.data.message || `تم تنفيذ الإجراء (${action}) بنجاح.`, 'success');
             }
         }
         
-        /**
-         * معالج مهمة الانضمام للقناة
-         */
-        async function handleCompleteTaskClick() {
-            if (userData.task_completed) {
-                 showCustomAlert('مهلاً!', 'لقد أكملت هذه المهمة بالفعل.', 'warning');
-                 return;
-            }
-            
-            const now = Date.now();
-            if (now - lastActionTime < RATE_LIMIT_MS) {
-                showCustomAlert('مهلاً!', 'يجب الانتظار 3 ثوانٍ بين الإجراءات.', 'warning');
-                return;
-            }
-            lastActionTime = now;
-            
-            tg.showConfirm('تأكيد المهمة', 'هل أنت متأكد من أنك انضممت إلى القناة المطلوبة؟ سيتم التحقق من عضويتك.', async (confirmed) => {
-                if (confirmed) {
-                    const actionId = await requestActionId('completeTask');
-                    if (!actionId) return;
+        // 8. البحث عن المستخدم
+        async function searchUser() {
+            const userId = document.getElementById('searchUserId').value.trim();
+            const userResultEl = document.getElementById('userResult');
+            userResultEl.style.display = 'none';
+            searchedUser = null;
 
-                    const result = await fetchApi({ 
-                        type: 'completeTask', 
-                        action_id: actionId 
-                    });
-                    
-                    if (result) {
-                        userData.balance = result.new_balance;
-                        userData.task_completed = true;
-                        showCustomAlert('تهانينا!', `تمت إضافة ${result.actual_reward} SHIB كمكافأة مهمة.`, 'success');
-                        updateUI();
-                    }
-                }
+            if (!userId) {
+                return showCustomAlert('تنبيه!', 'يرجى إدخال معرّف المستخدم.', 'warning');
+            }
+            
+            const actionId = await requestActionId('searchUser');
+            if (!actionId) return;
+
+            // تم تحديث fetchApi لـ searchUser لجلب ads_watched_today و spins_today
+            const result = await fetchApi({
+                type: 'searchUser', 
+                search_user_id: userId,
+                action_id: actionId
             });
+
+            if (result.ok && result.data.user) {
+                searchedUser = result.data.user;
+                document.getElementById('resUserName').textContent = searchedUser.username || searchedUser.first_name || 'N/A';
+                document.getElementById('resUserId').textContent = searchedUser.user_id;
+                document.getElementById('resUserBalance').textContent = searchedUser.balance.toLocaleString() + ' SHIB';
+                
+                // NEW: Display Counters
+                document.getElementById('resUserAds').textContent = searchedUser.ads_watched_today.toLocaleString();
+                document.getElementById('resUserSpins').textContent = searchedUser.spins_today.toLocaleString();
+                
+                document.getElementById('resUserStatus').textContent = searchedUser.is_banned ? 'محظور ❌' : 'غير محظور ✅';
+                
+                const banBtn = document.getElementById('resBanBtn');
+                banBtn.textContent = searchedUser.is_banned ? 'إلغاء الحظر' : 'حظر';
+                banBtn.classList.toggle('reject-btn', !searchedUser.is_banned); // يبقى الزر أحمر للحظر
+                banBtn.classList.toggle('accept-btn', searchedUser.is_banned); // يصبح أخضر لإلغاء الحظر
+                
+                document.getElementById('newBalance').value = searchedUser.balance;
+                userResultEl.style.display = 'block';
+                showCustomAlert('تم العثور على المستخدم!', `المستخدم ${searchedUser.user_id} جاهز للتعديل.`, 'success');
+
+            } else {
+                showCustomAlert('لم يتم العثور!', result.error || 'لم يتم العثور على مستخدم بالمعرّف المُدخل.', 'error');
+            }
         }
 
-        // ----------------- Initialization -----------------
+        // 9. تحديث رصيد المستخدم
+        async function updateUserBalance() {
+            if (!searchedUser) {
+                return showCustomAlert('تنبيه!', 'يرجى البحث عن مستخدم أولاً.', 'warning');
+            }
+
+            const newBalanceInput = document.getElementById('newBalance').value;
+            const newBalance = parseInt(newBalanceInput);
+
+            if (newBalanceInput === '') {
+                 return showCustomAlert('خطأ في الرصيد!', 'يرجى إدخال قيمة.', 'warning');
+            }
+            if (isNaN(newBalance) || newBalance < 0) {
+                return showCustomAlert('خطأ في الرصيد!', 'يرجى إدخال رصيد صحيح (رقم موجب).', 'warning');
+            }
+
+            const actionId = await requestActionId('updateBalance');
+            if (!actionId) return;
+
+            const result = await fetchApi({
+                type: 'updateBalance',
+                target_user_id: searchedUser.user_id,
+                new_balance: newBalance,
+                action_id: actionId
+            });
+
+            if (result.ok) {
+                searchedUser.balance = newBalance;
+                document.getElementById('resUserBalance').textContent = newBalance.toLocaleString() + ' SHIB';
+                showCustomAlert('نجاح!', `تم تحديث رصيد المستخدم ${searchedUser.user_id} إلى ${newBalance.toLocaleString()} SHIB.`, 'success');
+            }
+        }
+
+        // 10. تبديل حالة الحظر/إلغاء الحظر للمستخدم
+        async function toggleBanUser() {
+            if (!searchedUser) {
+                return showCustomAlert('تنبيه!', 'يرجى البحث عن مستخدم أولاً.', 'warning');
+            }
+            
+            const action = searchedUser.is_banned ? 'unban' : 'ban';
+            
+            const actionId = await requestActionId('toggleBan');
+            if (!actionId) return;
+
+            const result = await fetchApi({
+                type: 'toggleBan',
+                target_user_id: searchedUser.user_id,
+                action: action,
+                action_id: actionId
+            });
+
+            if (result.ok) {
+                searchedUser.is_banned = !searchedUser.is_banned;
+                document.getElementById('resUserStatus').textContent = searchedUser.is_banned ? 'محظور ❌' : 'غير محظور ✅';
+                
+                const banBtn = document.getElementById('resBanBtn');
+                banBtn.textContent = searchedUser.is_banned ? 'إلغاء الحظر' : 'حظر';
+                banBtn.classList.toggle('reject-btn', !searchedUser.is_banned);
+                banBtn.classList.toggle('accept-btn', searchedUser.is_banned);
+
+                showCustomAlert('نجاح!', `تم ${action === 'ban' ? 'حظر' : 'إلغاء حظر'} المستخدم ${searchedUser.user_id}.`, 'success');
+            }
+        }
         
+        // 11. دالة تبديل الأقسام
+        function showSection(targetId, sourceElement) {
+            // إزالة حالة active من جميع الأزرار
+            document.querySelectorAll('.admin-nav .nav-btn').forEach(btn => btn.classList.remove('active'));
+            // إزالة حالة active من جميع الأقسام
+            document.querySelectorAll('.admin-screen .content-section').forEach(sec => sec.classList.remove('active'));
+            
+            // إضافة حالة active للزر والقسم المستهدف
+            sourceElement.classList.add('active');
+            document.getElementById(targetId).classList.add('active');
+            
+            // إذا كان القسم هو السحوبات، قم بإعادة تحميل البيانات
+            if (targetId === 'withdrawals-section') {
+                loadAdminData();
+            } else if (targetId === 'user-management-section') {
+                // مسح نتائج البحث عند التبديل
+                document.getElementById('userResult').style.display = 'none';
+                document.getElementById('searchUserId').value = '';
+                searchedUser = null;
+            }
+        }
+
+        // عند تحميل الصفحة، تأكد من صلاحية المسؤول وتحميل البيانات
         window.onload = function() {
-            if (tg.initDataUnsafe.user) {
-                const user = tg.initDataUnsafe.user;
-                let ref_by = null;
-                
-                // البحث عن معرف المُحيل في start_param
-                const startParam = new URLSearchParams(tg.initData).get('start_param');
-                if (startParam) {
-                    const refMatch = startParam.match(/^ref(\d+)$/);
-                    if (refMatch && refMatch[1] !== user.id.toString()) {
-                        ref_by = refMatch[1];
-                    }
+            if (tgUser && tgUser.id.toString() === adminUserId) {
+                // Show the default section (Withdrawals) and load data
+                const defaultButton = document.querySelector('.nav-btn[data-target="withdrawals-section"]');
+                if (defaultButton) {
+                    showSection('withdrawals-section', defaultButton);
+                } else {
+                    loadAdminData(); // Fallback if no button found
                 }
-                
-                loadUserData(ref_by);
             } else {
-                showLoader(false);
-                document.getElementById('mainApp').style.display = 'flex';
-                document.getElementById('mainApp').innerHTML = `
-                    <div class="header" style="margin-top: 50px;">
-                        <h1>❌ خطأ في التحميل</h1>
-                        <p style="color: #dc3545; font-size: 18px; font-weight: 700;">يرجى فتح التطبيق داخل Telegram.</p>
+                // إظهار رسالة عدم الصلاحية بتنسيق أفضل
+                document.getElementById('adminScreen').innerHTML = `
+                    <div class="admin-header">
+                        <h2 class="admin-title" style="color:#dc3545;">❌ رفض الوصول ❌</h2>
+                        <div class="admin-subtitle" style="color:#e0e0e0;">لا تملك صلاحيات المسؤول المطلوبة.</div>
+                    </div>
+                    <div class="content-section active" style="background:#4a4a4a;">
+                        <div class="no-records" style="color:#dc3545; font-weight:700;">يجب أن يكون معرّفك هو ${adminUserId} للوصول.</div>
                     </div>
                 `;
             }
