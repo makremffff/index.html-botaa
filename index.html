@@ -52,15 +52,51 @@
             color: #555;
             margin-top: 5px;
         }
+        
+        /* NEW: Style for Tabs/Navigation */
+        .admin-nav {
+            display: flex;
+            justify-content: space-around;
+            gap: 10px;
+            margin-bottom: 20px;
+            padding: 10px 0;
+            border-bottom: 3px solid #ddd;
+        }
 
+        .nav-btn {
+            flex-grow: 1;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            background: #f0f0f0;
+            color: #555;
+            transition: all .2s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .nav-btn.active {
+            background: #8a2be2; /* نفس لون العنوان */
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 10px rgba(0, 0, 0, 0.2);
+        }
+
+        /* NEW: Style for Content Sections */
         .content-section {
             background: #f8f8ff;
             padding: 15px;
             border-radius: 12px;
             border: 1px solid #ddd;
             box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+            display: none; /* إخفاء جميع الأقسام افتراضياً */
         }
-
+        
+        .content-section.active {
+            display: block; /* إظهار القسم النشط */
+        }
         /* تنسيقات إدارة السحوبات */
         .history-title {
             font-size: 20px;
@@ -347,10 +383,22 @@
     <div class="admin-screen" id="adminScreen">
         <div class="admin-header">
             <h2 class="admin-title">👑 لوحة تحكم المسؤول</h2>
-            <div class="admin-subtitle">إدارة السحوبات | تعديل النقاط | حظر المستخدمين</div>
+            <div class="admin-subtitle">إدارة التطبيق والأعضاء</div>
+        </div>
+        
+        <div class="admin-nav">
+            <button class="nav-btn active" data-target="withdrawals-section" onclick="showSection('withdrawals-section', this)">💳 السحوبات المعلقة</button>
+            <button class="nav-btn" data-target="user-management-section" onclick="showSection('user-management-section', this)">👤 إدارة المستخدم</button>
+        </div>
+        
+        <div class="content-section" id="withdrawals-section">
+            <h3 class="history-title">💳 طلبات السحب المعلقة</h3>
+            <div id="pendingWithdrawalsList">
+                <div class="no-records">جاري تحميل طلبات السحب...</div>
+            </div>
         </div>
 
-        <div class="content-section">
+        <div class="content-section" id="user-management-section">
             <h3 class="history-title">🔍 البحث وتعديل نقاط المستخدم</h3>
             <div class="search-section">
                 <div class="search-input-group">
@@ -359,7 +407,7 @@
                 </div>
                 
                 <div id="userResult" style="display: none;">
-                    <h4>بيانات المستخدم: <span id="resUserName"></span> (<span id="resUserId"></span>)</h4>
+                    <h4>بيانات المستخدم: <span id="resUserName">N/A</span> (<span id="resUserId">N/A</span>)</h4>
                     <p>الرصيد الحالي: <span id="resUserBalance">0 SHIB</span></p>
                     <p>الحالة: <span id="resUserStatus">غير محظور</span></p>
 
@@ -369,13 +417,6 @@
                         <button class="action-btn ban-btn" id="resBanBtn" onclick="toggleBanUser()">حظر/إلغاء الحظر</button>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <div class="content-section">
-            <h3 class="history-title">💳 طلبات السحب المعلقة</h3>
-            <div id="pendingWithdrawalsList">
-                <div class="no-records">جاري تحميل طلبات السحب...</div>
             </div>
         </div>
         
@@ -542,8 +583,9 @@
             const actionId = await requestActionId('searchUser');
             if (!actionId) return;
 
+            // ⚠️ الآن searchUser معرّف في index.js
             const result = await fetchApi({
-                type: 'searchUser',
+                type: 'searchUser', 
                 search_user_id: userId,
                 action_id: actionId
             });
@@ -564,7 +606,8 @@
                 showCustomAlert('تم العثور على المستخدم!', `المستخدم ${searchedUser.user_id} جاهز للتعديل.`, 'success');
 
             } else {
-                showCustomAlert('لم يتم العثور!', 'لم يتم العثور على مستخدم بالمعرّف المُدخل.', 'error');
+                // يعرض رسالة الخطأ من الخادم (التي تم تعديلها في index.js)
+                showCustomAlert('لم يتم العثور!', result.error || 'لم يتم العثور على مستخدم بالمعرّف المُدخل.', 'error');
             }
         }
 
@@ -582,6 +625,7 @@
             const actionId = await requestActionId('updateBalance');
             if (!actionId) return;
 
+            // ⚠️ الآن updateBalance معرّف في index.js
             const result = await fetchApi({
                 type: 'updateBalance',
                 target_user_id: searchedUser.user_id,
@@ -607,6 +651,7 @@
             const actionId = await requestActionId('toggleBan');
             if (!actionId) return;
 
+            // ⚠️ الآن toggleBan معرّف في index.js
             const result = await fetchApi({
                 type: 'toggleBan',
                 target_user_id: searchedUser.user_id,
@@ -626,10 +671,38 @@
             }
         }
         
+        // 11. دالة تبديل الأقسام (NEW)
+        function showSection(targetId, sourceElement) {
+            // إزالة حالة active من جميع الأزرار
+            document.querySelectorAll('.admin-nav .nav-btn').forEach(btn => btn.classList.remove('active'));
+            // إزالة حالة active من جميع الأقسام
+            document.querySelectorAll('.admin-screen .content-section').forEach(sec => sec.classList.remove('active'));
+            
+            // إضافة حالة active للزر والقسم المستهدف
+            sourceElement.classList.add('active');
+            document.getElementById(targetId).classList.add('active');
+            
+            // إذا كان القسم هو السحوبات، قم بإعادة تحميل البيانات
+            if (targetId === 'withdrawals-section') {
+                loadAdminData();
+            } else if (targetId === 'user-management-section') {
+                // مسح نتائج البحث عند التبديل
+                document.getElementById('userResult').style.display = 'none';
+                document.getElementById('searchUserId').value = '';
+                searchedUser = null;
+            }
+        }
+
         // عند تحميل الصفحة، تأكد من صلاحية المسؤول وتحميل البيانات
         window.onload = function() {
             if (tgUser && tgUser.id.toString() === adminUserId) {
-                loadAdminData();
+                // Show the default section (Withdrawals) and load data
+                const defaultButton = document.querySelector('.nav-btn[data-target="withdrawals-section"]');
+                if (defaultButton) {
+                    showSection('withdrawals-section', defaultButton);
+                } else {
+                    loadAdminData(); // Fallback if no button found
+                }
             } else {
                 document.getElementById('adminScreen').innerHTML = '<div class="admin-header"><h2 class="admin-title">👑 لوحة تحكم المسؤول</h2></div><div class="content-section"><div class="no-records" style="color:#dc3545; font-weight:700;">لا تملك صلاحيات المسؤول.</div></div>';
             }
